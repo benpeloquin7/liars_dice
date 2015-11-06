@@ -89,6 +89,8 @@ class InitialGameState(GameState):
         self.currentPlayerIndex = currentPlayerIndex
         self.numDicePerPlayer = numDicePerPlayer
 
+        assert len(numDicePerPlayer) == NUM_PLAYERS
+
     def getLegalActions(self):
         """
         Returns the legal actions for the player specified.
@@ -132,6 +134,8 @@ class MedialGameState(GameState):
         actions.append(('confirm', self.bid[1], self.bid[2], self.bid[3]))
         actions.append(('deny', self.bid[1], self.bid[2], self.bid[3]))
 
+        return actions
+
     def generateSuccessor(self, action):
         """
         Returns the successor state after the specified player takes the action.
@@ -171,3 +175,10 @@ class MedialGameState(GameState):
                     nextPlayer = self.currentPlayerIndex
 
             return InitialGameState(numDicePerPlayer, nextPlayer)
+
+# igs = InitialGameState([2, 2, 2], 0)
+# mgs = igs.generateSuccessor(igs.getLegalActions()[0])
+# igs.isWin(0)
+#
+# print mgs.getLegalActions()[0]
+# mgs.generateSuccessor(mgs.getLegalActions()[0]).isWin(2)
