@@ -131,8 +131,8 @@ class MedialGameState(GameState):
         actions = [('bid', value, count, self.currentPlayerIndex)
                 for value in range(1, DICE_SIDES + 1) for count in range(currentCount + 1, totalNumberOfDice + 1)]
 
-        actions.append(('confirm', self.bid[1], self.bid[2], self.bid[3]))
-        actions.append(('deny', self.bid[1], self.bid[2], self.bid[3]))
+        actions.append(('confirm', self.bid[1], self.bid[2], self.currentPlayerIndex))
+        actions.append(('deny', self.bid[1], self.bid[2], self.currentPlayerIndex))
 
         return actions
 
@@ -176,7 +176,7 @@ class MedialGameState(GameState):
 
             return InitialGameState(numDicePerPlayer, nextPlayer)
 
-# igs = InitialGameState([2, 2, 2], 0)
+igs = InitialGameState([2, 2, 2], 0)
 # mgs = igs.generateSuccessor(igs.getLegalActions()[0])
 # igs.isWin(0)
 #
