@@ -1,58 +1,10 @@
-"""
-Terminology:
--Agent: Our intelligent AI that will be simulating moves in advance and carrying out a smart policy.
--Player: An agent or an opponent.
--Round: The length of gameplay between when dice are (re)rolled and someone callsBluff/confirmsBid.
-"""
-
 import random
 from collections import Counter
 
 NUM_PLAYERS = 3
+INITIAL_NUM_DICE_PER_PLAYER = 3
 DICE_SIDES = 6
-class PlayerRules:
-    """
-    Represents the rules of the game from players' perspective.
-    Specifically, what actions can be performed (getLegalActions) and what will happen
-    if an action is taken (applyActions).
-    """
-
-    def getLegalActions( state ):
-        """
-        Returns list of legal actions, given state of the game.
-        """
-        hands = state.hands
-        ante = state.ante
-        totalDice = state.totalDice
-        assert ante < totalDice, 'Ante exceeds number of dice!' #ISSUE: Should figure out what happens next in this case.
-
-        if not state.round_begin:
-            possibleActs.append('callBluff', 'confirmBid')
-
-        for bidQuant in range(ante+1, totalDice+1):
-            possibleActs.append([(bidQuant, bidVal) for bidVal in range(1,state.diceSides)])
-
-        return possibleActs
-    getLegalActions = staticmethod( getLegalActions )
-
-    def applyAction( state, action, cc ):
-        """
-        Edits the state to reflect the results of the action.
-
-        cc is an instance of CentralControl.
-        """
-        legal = PlayerRules.getLegalActions( state )
-        if action not in legal:
-            raise Exception("Illegal action " + str(action))
-
-        if action == 'callBluff' or action == 'confirmBid':
-            cc.evaluateAction(state, action)
-            cc.reroll(state)
-
-        else: #Action was a bid.
-            state.currBid = action
-
-    applyAction = staticmethod( applyAction )
+SHOW_ALL_HANDS = True
 
 class GameState:
     def __init__(self):
@@ -70,14 +22,27 @@ class GameState:
     def isLose(self, playerIndex):
         return False
 
+    def isGameOver(self):
+        # only one player can have dice for the game to be over
+        return 1 == sum(1 for numDice in self.numDicePerPlayer if numDice > 0)
+
     def getNextPlayer(self):
         nextPlayer = (self.currentPlayerIndex + 1) % NUM_PLAYERS
         # skip players that are out
         while self.numDicePerPlayer[nextPlayer] == 0:
-            nextPlayer = (self.currentPlayerIndex + 1) % NUM_PLAYERS
+            nextPlayer = (nextPlayer + 1) % NUM_PLAYERS
 
         return nextPlayer
 
+    def getCurrentPlayerIndex(self):
+        return self.currentPlayerIndex
+
+    def getHandsString(self):
+        gameStateString = ''
+        for playerIndex, hand in enumerate(self.hands):
+            gameStateString += 'Player %d  |  %s\n' % (playerIndex, ','.join(str(h) for h in hand.elements()))
+
+        return gameStateString
 
 class InitialGameState(GameState):
     def __init__(self, numDicePerPlayer, currentPlayerIndex):
@@ -88,8 +53,7 @@ class InitialGameState(GameState):
         self.bid = None
         self.currentPlayerIndex = currentPlayerIndex
         self.numDicePerPlayer = numDicePerPlayer
-        # maintain count of active players   
-        #self.activePlayers = len()
+        self.totalNumDice = sum(numDicePerPlayer)
 
         assert len(numDicePerPlayer) == NUM_PLAYERS
 
@@ -114,8 +78,10 @@ class InitialGameState(GameState):
         return self.numDicePerPlayer[playerIndex] == 0
 
     def isWin(self, playerIndex):
-        return self.numDicePerPlayer[playerIndex] > 0 and\
-               all(numDice == 0 for otherPlayer, numDice in enumerate(self.numDicePerPlayer) if otherPlayer != playerIndex)
+        return self.numDicePerPlayer[playerIndex] > 0 and self.totalNumDice == self.numDicePerPlayer[playerIndex]
+
+    def __str__(self):
+        return self.getHandsString() + '\nNo current bid\n'
 
 class MedialGameState(GameState):
     def  __init__(self, numDicePerPlayer, hands, currentPlayerIndex, bid):
@@ -133,8 +99,8 @@ class MedialGameState(GameState):
         actions = [('bid', value, count, self.currentPlayerIndex)
                 for value in range(1, DICE_SIDES + 1) for count in range(currentCount + 1, totalNumberOfDice + 1)]
 
-        actions.append(('confirm', self.bid[1], self.bid[2], self.currentPlayerIndex))
-        actions.append(('deny', self.bid[1], self.bid[2], self.currentPlayerIndex))
+        actions.append(('confirm', self.bid[1], self.bid[2], self.bid[3]))
+        actions.append(('deny', self.bid[1], self.bid[2], self.bid[3]))
 
         return actions
 
@@ -142,7 +108,7 @@ class MedialGameState(GameState):
         """
         Returns the successor state after the specified player takes the action.
         """
-        verb, value, count, bidPlayerIndex = action
+        verb, value, bidCount, previousBidPlayerIndex = action
         if verb == 'bid':
 
             return MedialGameState(self.numDicePerPlayer,
@@ -159,7 +125,7 @@ class MedialGameState(GameState):
             trueCountOfReleventDie = sum(hand[value] for hand in self.hands)
 
             if verb == 'confirm':
-                if count == trueCountOfReleventDie:
+                if bidCount == trueCountOfReleventDie:
                     for playerIndex, numDice in enumerate(numDicePerPlayer):
                         if playerIndex != self.currentPlayerIndex and numDice > 0:
                             # each player loses a die, except the confirming player
@@ -169,23 +135,20 @@ class MedialGameState(GameState):
                     # confirming player loses a die
                     numDicePerPlayer[self.currentPlayerIndex] -= 1
                     # whoever 'wins' goes next
-                    nextPlayer = bidPlayerIndex
+                    nextPlayer = previousBidPlayerIndex
             else:
                 assert verb == 'deny'
-                if count < trueCountOfReleventDie:
+                if trueCountOfReleventDie < bidCount:
                     # prev player loses a die
-                    numDicePerPlayer[bidPlayerIndex] -= 1
+                    numDicePerPlayer[previousBidPlayerIndex] -= 1
                     nextPlayer = self.currentPlayerIndex
                 else:
                     # denying player loses a die, same as confirming
                     numDicePerPlayer[self.currentPlayerIndex] -= 1
-                    nextPlayer = bidPlayerIndex
+                    nextPlayer = previousBidPlayerIndex
 
             return InitialGameState(numDicePerPlayer, nextPlayer)
 
-igs = InitialGameState([2, 2, 2], 0)
-# mgs = igs.generateSuccessor(igs.getLegalActions()[0])
-# igs.isWin(0)
-#
-# print mgs.getLegalActions()[0]
-# mgs.generateSuccessor(mgs.getLegalActions()[0]).isWin(2)
+    def __str__(self):
+        _, value, count, bidPlayer = self.bid
+        return self.getHandsString() + "\nPlayer %d bids that there are at least %d %d's\n" % (bidPlayer, count, value)
