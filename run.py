@@ -20,6 +20,6 @@ def playGame():
     for i in range(NUM_PLAYERS):
         if gameState.isWin(i):
             print '----------------------------------\n'
-            print 'Player %d won!'
+            print 'Player %d won!' % i
 
 playGame()

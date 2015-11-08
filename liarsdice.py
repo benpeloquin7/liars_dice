@@ -30,7 +30,7 @@ class GameState:
         nextPlayer = (self.currentPlayerIndex + 1) % NUM_PLAYERS
         # skip players that are out
         while self.numDicePerPlayer[nextPlayer] == 0:
-            nextPlayer = (self.currentPlayerIndex + 1) % NUM_PLAYERS
+            nextPlayer = (nextPlayer + 1) % NUM_PLAYERS
 
         return nextPlayer
 
@@ -99,8 +99,8 @@ class MedialGameState(GameState):
         actions = [('bid', value, count, self.currentPlayerIndex)
                 for value in range(1, DICE_SIDES + 1) for count in range(currentCount + 1, totalNumberOfDice + 1)]
 
-        actions.append(('confirm', self.bid[1], self.bid[2], self.currentPlayerIndex))
-        actions.append(('deny', self.bid[1], self.bid[2], self.currentPlayerIndex))
+        actions.append(('confirm', self.bid[1], self.bid[2], self.bid[3]))
+        actions.append(('deny', self.bid[1], self.bid[2], self.bid[3]))
 
         return actions
 
@@ -108,7 +108,7 @@ class MedialGameState(GameState):
         """
         Returns the successor state after the specified player takes the action.
         """
-        verb, value, count, bidPlayerIndex = action
+        verb, value, bidCount, previousBidPlayerIndex = action
         if verb == 'bid':
 
             return MedialGameState(self.numDicePerPlayer,
@@ -125,7 +125,7 @@ class MedialGameState(GameState):
             trueCountOfReleventDie = sum(hand[value] for hand in self.hands)
 
             if verb == 'confirm':
-                if count == trueCountOfReleventDie:
+                if bidCount == trueCountOfReleventDie:
                     for playerIndex, numDice in enumerate(numDicePerPlayer):
                         if playerIndex != self.currentPlayerIndex and numDice > 0:
                             # each player loses a die, except the confirming player
@@ -135,27 +135,20 @@ class MedialGameState(GameState):
                     # confirming player loses a die
                     numDicePerPlayer[self.currentPlayerIndex] -= 1
                     # whoever 'wins' goes next
-                    nextPlayer = bidPlayerIndex
+                    nextPlayer = previousBidPlayerIndex
             else:
                 assert verb == 'deny'
-                if count < trueCountOfReleventDie:
+                if trueCountOfReleventDie < bidCount:
                     # prev player loses a die
-                    numDicePerPlayer[bidPlayerIndex] -= 1
+                    numDicePerPlayer[previousBidPlayerIndex] -= 1
                     nextPlayer = self.currentPlayerIndex
                 else:
                     # denying player loses a die, same as confirming
                     numDicePerPlayer[self.currentPlayerIndex] -= 1
-                    nextPlayer = bidPlayerIndex
+                    nextPlayer = previousBidPlayerIndex
 
             return InitialGameState(numDicePerPlayer, nextPlayer)
 
     def __str__(self):
         _, value, count, bidPlayer = self.bid
         return self.getHandsString() + "\nPlayer %d bids that there are at least %d %d's\n" % (bidPlayer, count, value)
-
-igs = InitialGameState([2, 2, 2], 0)
-# mgs = igs.generateSuccessor(igs.getLegalActions()[0])
-# igs.isWin(0)
-#
-# print mgs.getLegalActions()[0]
-# mgs.generateSuccessor(mgs.getLegalActions()[0]).isWin(2)
