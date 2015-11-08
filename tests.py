@@ -179,16 +179,16 @@ def testMG_generateSuccessor():
 # MutualGamestate tests (MG)
 # --------------------------
 testMG_generateSuccessor()
-# testMG_MedialGameStateAttributes()
-# testMG_getLegalActions()
+testMG_MedialGameStateAttributes()
+testMG_getLegalActions()
 
 # InitalGamestate tests (IG)
 # --------------------------
-# testIG_InitalGameStateAttributes()
-# testIG_getLegalActions()
-# testIG_generateSucc()
-# testIG_isLose()
-# testIG_isWin()
+testIG_InitalGameStateAttributes()
+testIG_getLegalActions()
+testIG_generateSucc()
+testIG_isLose()
+testIG_isWin()
 
 # mgs = igs.generateSuccessor(igs.getLegalActions()[0])
 # igs.isWin(0)
