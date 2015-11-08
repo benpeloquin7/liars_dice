@@ -2,11 +2,12 @@
 ################################################################################################
 # Unit tests for basic functionality
 from liarsdice import *
+from collections import Counter
 import random
 
 
 numDicePerPlayer = [3, 3, 3]
-currPlayerIndex = 2
+currPlayerIndex = 0
 
 def testIG_InitalGameStateAttributes():
 	"""
@@ -96,15 +97,98 @@ def testIG_isWin():
 	assert igs.isWin(1) and not (igs.isWin(0) or igs.isWin(2))
 	print("pass --> InitialGameState.isWin(index)")
 
+def testMG_MedialGameStateAttributes():
+	"""
+	general MedialGameState attributes
+	"""
+	# medial state from initial state
+	currPlayerIndex = 0
+	igs = InitialGameState(numDicePerPlayer, currPlayerIndex)
+	mgs = igs.generateSuccessor(igs.getLegalActions()[0])
+	assert mgs.hands == igs.hands
+	assert mgs.currentPlayerIndex == igs.getNextPlayer()
+	assert mgs.numDicePerPlayer == igs.numDicePerPlayer
+	assert mgs.bid != None
+
+	# medial state initialzied in isolation
+	currPlayerIndex = 2
+	hands = [Counter(random.randint(1,DICE_SIDES)\
+				for _ in range(numDice))\
+					for numDice in numDicePerPlayer]
+	mgs = MedialGameState(numDicePerPlayer, hands, currPlayerIndex, "bid")
+	assert len(mgs.numDicePerPlayer) > 0
+	assert mgs.bid != None
+	assert mgs.currentPlayerIndex == currPlayerIndex
+	assert len(mgs.hands) ==  len(numDicePerPlayer)
+	#numDicePerPlayer, hands, currentPlayerIndex, bid)
+	print("pass --> MedialGameState attributes")
+
+def testMG_getLegalActions():
+	"""
+	general MedialGameState attributes
+	Note: actionTuple contians ('verb', value, count, curr_player_index)
+	"""
+	currPlayerIndex = 2
+	hands = [Counter(random.randint(1,DICE_SIDES)\
+				for _ in range(numDice))\
+					for numDice in numDicePerPlayer]
+	mgs = MedialGameState(numDicePerPlayer, hands, \
+							currPlayerIndex, ("deny", 2, 3, 1))
+	# print mgs.getLegalActions()
+	# Check that 'confirms' and 'denys' always match prev 'bid' data
+	assert [action[1] == mgs.bid[1] and\
+			action[2] == mgs.bid[2] and\
+			action[3] == mgs.bid[3]\
+			for action in mgs.getLegalActions()\
+				if (action[0] == "confirm" or action[0] == "deny")]
+	# Check that future bids always involve a count greater than the prev bid
+	assert [action[2] > mgs.bid[2] for action in mgs.getLegalActions() if action[0] == "bid"]
+	print("pass --> MedialGameState.getLegalActions()")
+
+	
+def testMG_generateSuccessor():
+	"""
+	test MedialGameState.generateSuccesor()
+	"""
+	currPlayerIndex = 2  	# starting at last player
+	hands = [Counter(random.randint(1,DICE_SIDES)\
+				for _ in range(numDice))\
+					for numDice in numDicePerPlayer]
+	
+	mgs = MedialGameState(numDicePerPlayer, hands, \
+							currPlayerIndex, ("bid", 2, 3, 1))
+	print "mgs.currentPlayerIndex:", mgs.currentPlayerIndex
+	print "mgs.hands\n", mgs.hands
+	print "mgs bid (\"bid\", 3, 3, 2)"
+	succ1 = mgs.generateSuccessor(("bid", 3, 3, mgs.currentPlayerIndex))
+	print "succ1.currentPlayerIndex:", succ1.currentPlayerIndex
+	print "succ1.hands\n", succ1.hands
+	print "succ1 bid (\"deny\", 3, 3, 2))"
+	succ2 = succ1.generateSuccessor(("deny", 3, 3, succ1.currentPlayerIndex))
+	print "succ2.currentPlayerIndex:", succ2.currentPlayerIndex
+	print "succ2.hands\n", succ2.hands
+
+	# check we've incremented player
+	# print "succ.currentPlayerIndex", succ.currentPlayerIndex
+	# print "mgs.currentPlayerIndex", mgs.currentPlayerIndex
+	assert succ1.currentPlayerIndex == mgs.getNextPlayer()
+	assert succ1.bid[0] == "bid"
+	assert succ1.bid == ("bid", 3, 3, mgs.currentPlayerIndex)
+
+
+# MutualGamestate tests (MG)
+# --------------------------
+testMG_generateSuccessor()
+# testMG_MedialGameStateAttributes()
+# testMG_getLegalActions()
+
 # InitalGamestate tests (IG)
 # --------------------------
-testIG_InitalGameStateAttributes()
-testIG_getLegalActions()
-testIG_generateSucc()
-testIG_isLose()
-testIG_isWin()
-
-
+# testIG_InitalGameStateAttributes()
+# testIG_getLegalActions()
+# testIG_generateSucc()
+# testIG_isLose()
+# testIG_isWin()
 
 # mgs = igs.generateSuccessor(igs.getLegalActions()[0])
 # igs.isWin(0)
