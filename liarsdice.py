@@ -88,6 +88,8 @@ class InitialGameState(GameState):
         self.bid = None
         self.currentPlayerIndex = currentPlayerIndex
         self.numDicePerPlayer = numDicePerPlayer
+        # maintain count of active players   
+        #self.activePlayers = len()
 
         assert len(numDicePerPlayer) == NUM_PLAYERS
 
@@ -148,6 +150,10 @@ class MedialGameState(GameState):
                                    self.getNextPlayer(),
                                    action)
         else:
+            # Note:
+            # -----
+            # For any action the 'winner' goes next
+
             # copy numDicePerPlayer
             numDicePerPlayer = [numDice for numDice in self.numDicePerPlayer]
             trueCountOfReleventDie = sum(hand[value] for hand in self.hands)
@@ -162,6 +168,7 @@ class MedialGameState(GameState):
                 else:
                     # confirming player loses a die
                     numDicePerPlayer[self.currentPlayerIndex] -= 1
+                    # whoever 'wins' goes next
                     nextPlayer = bidPlayerIndex
             else:
                 assert verb == 'deny'
@@ -172,7 +179,7 @@ class MedialGameState(GameState):
                 else:
                     # denying player loses a die, same as confirming
                     numDicePerPlayer[self.currentPlayerIndex] -= 1
-                    nextPlayer = self.currentPlayerIndex
+                    nextPlayer = bidPlayerIndex
 
             return InitialGameState(numDicePerPlayer, nextPlayer)
 
