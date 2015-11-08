@@ -4,6 +4,7 @@ from collections import Counter
 NUM_PLAYERS = 3
 INITIAL_NUM_DICE_PER_PLAYER = 3
 DICE_SIDES = 6
+SHOW_ALL_HANDS = True
 
 class GameState:
     def __init__(self):
@@ -35,6 +36,13 @@ class GameState:
 
     def getCurrentPlayerIndex(self):
         return self.currentPlayerIndex
+
+    def getHandsString(self):
+        gameStateString = ''
+        for playerIndex, hand in enumerate(self.hands):
+            gameStateString += 'Player %d  |  %s\n' % (playerIndex, ','.join(str(h) for h in hand.elements()))
+
+        return gameStateString
 
 class InitialGameState(GameState):
     def __init__(self, numDicePerPlayer, currentPlayerIndex):
@@ -71,6 +79,9 @@ class InitialGameState(GameState):
 
     def isWin(self, playerIndex):
         return self.numDicePerPlayer[playerIndex] > 0 and self.totalNumDice == self.numDicePerPlayer[playerIndex]
+
+    def __str__(self):
+        return self.getHandsString() + '\nNo current bid\n'
 
 class MedialGameState(GameState):
     def  __init__(self, numDicePerPlayer, hands, currentPlayerIndex, bid):
@@ -137,6 +148,10 @@ class MedialGameState(GameState):
                     nextPlayer = bidPlayerIndex
 
             return InitialGameState(numDicePerPlayer, nextPlayer)
+
+    def __str__(self):
+        _, value, count, bidPlayer = self.bid
+        return self.getHandsString() + "\nPlayer %d bids that there are at least %d %d's\n" % (bidPlayer, count, value)
 
 igs = InitialGameState([2, 2, 2], 0)
 # mgs = igs.generateSuccessor(igs.getLegalActions()[0])
