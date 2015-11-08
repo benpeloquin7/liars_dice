@@ -7,7 +7,7 @@ from agents import *
 # Counter of number of players?
 
 def playGame():
-    agents = [Agent() for _ in range(NUM_PLAYERS)]
+    agents = [HumanAgent(i) for i in range(NUM_PLAYERS)]
     gameState = InitialGameState([INITIAL_NUM_DICE_PER_PLAYER] * NUM_PLAYERS, 0)
     while not gameState.isGameOver():
         print '----------------------------------\n'
