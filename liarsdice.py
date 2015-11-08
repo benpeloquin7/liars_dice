@@ -1,58 +1,9 @@
-"""
-Terminology:
--Agent: Our intelligent AI that will be simulating moves in advance and carrying out a smart policy.
--Player: An agent or an opponent.
--Round: The length of gameplay between when dice are (re)rolled and someone callsBluff/confirmsBid.
-"""
-
 import random
 from collections import Counter
 
 NUM_PLAYERS = 3
+INITIAL_NUM_DICE_PER_PLAYER = 3
 DICE_SIDES = 6
-class PlayerRules:
-    """
-    Represents the rules of the game from players' perspective.
-    Specifically, what actions can be performed (getLegalActions) and what will happen
-    if an action is taken (applyActions).
-    """
-
-    def getLegalActions( state ):
-        """
-        Returns list of legal actions, given state of the game.
-        """
-        hands = state.hands
-        ante = state.ante
-        totalDice = state.totalDice
-        assert ante < totalDice, 'Ante exceeds number of dice!' #ISSUE: Should figure out what happens next in this case.
-
-        if not state.round_begin:
-            possibleActs.append('callBluff', 'confirmBid')
-
-        for bidQuant in range(ante+1, totalDice+1):
-            possibleActs.append([(bidQuant, bidVal) for bidVal in range(1,state.diceSides)])
-
-        return possibleActs
-    getLegalActions = staticmethod( getLegalActions )
-
-    def applyAction( state, action, cc ):
-        """
-        Edits the state to reflect the results of the action.
-
-        cc is an instance of CentralControl.
-        """
-        legal = PlayerRules.getLegalActions( state )
-        if action not in legal:
-            raise Exception("Illegal action " + str(action))
-
-        if action == 'callBluff' or action == 'confirmBid':
-            cc.evaluateAction(state, action)
-            cc.reroll(state)
-
-        else: #Action was a bid.
-            state.currBid = action
-
-    applyAction = staticmethod( applyAction )
 
 class GameState:
     def __init__(self):
@@ -70,6 +21,10 @@ class GameState:
     def isLose(self, playerIndex):
         return False
 
+    def isGameOver(self):
+        # only one player can have dice for the game to be over
+        return 1 == sum(1 for numDice in self.numDicePerPlayer if numDice > 0)
+
     def getNextPlayer(self):
         nextPlayer = (self.currentPlayerIndex + 1) % NUM_PLAYERS
         # skip players that are out
@@ -78,6 +33,8 @@ class GameState:
 
         return nextPlayer
 
+    def getCurrentPlayerIndex(self):
+        return self.currentPlayerIndex
 
 class InitialGameState(GameState):
     def __init__(self, numDicePerPlayer, currentPlayerIndex):
@@ -88,8 +45,7 @@ class InitialGameState(GameState):
         self.bid = None
         self.currentPlayerIndex = currentPlayerIndex
         self.numDicePerPlayer = numDicePerPlayer
-        # maintain count of active players   
-        #self.activePlayers = len()
+        self.totalNumDice = sum(numDicePerPlayer)
 
         assert len(numDicePerPlayer) == NUM_PLAYERS
 
@@ -114,8 +70,7 @@ class InitialGameState(GameState):
         return self.numDicePerPlayer[playerIndex] == 0
 
     def isWin(self, playerIndex):
-        return self.numDicePerPlayer[playerIndex] > 0 and\
-               all(numDice == 0 for otherPlayer, numDice in enumerate(self.numDicePerPlayer) if otherPlayer != playerIndex)
+        return self.numDicePerPlayer[playerIndex] > 0 and self.totalNumDice == self.numDicePerPlayer[playerIndex]
 
 class MedialGameState(GameState):
     def  __init__(self, numDicePerPlayer, hands, currentPlayerIndex, bid):
