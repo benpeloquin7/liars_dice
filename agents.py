@@ -4,7 +4,7 @@ class Agent:
     def chooseAction(self, gameState):
         raise Exception('abstract')
 
-class HumanAgent:
+class HumanAgent(Agent):
     def __init__(self, agentIndex):
         self.agentIndex = agentIndex
 
