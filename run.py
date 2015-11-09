@@ -48,4 +48,4 @@ def log(logFile, text):
     if logFile is not None:
         print >>logFile, text
 
-playGame(True, 'gameData.txt')
+playGame(True, 'data/gameData.txt')
