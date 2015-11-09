@@ -1,0 +1,50 @@
+----------------------------------
+Game 1:
+
+Player 0  |  1,2,6
+Player 1  |  1,1,5
+Player 2  |  1,6,6
+
+bid(0) = 1 2
+bid(1) = 2 2
+confirm(2) = 2 2
+
+Player 0  |  3,5,5
+Player 1  |  1,4,5
+Player 2  |  3,3
+
+bid(1) = 2 3
+deny(2) = 2 3
+
+Player 0  |  3,3,5
+Player 1  |  1,4,5
+Player 2  |  6
+
+bid(1) = 2 5
+bid(2) = 3 5
+bid(0) = 4 5
+deny(1) = 4 5
+
+Player 0  |  3,6
+Player 1  |  1,1,5
+Player 2  |  4
+
+bid(1) = 1 3
+bid(2) = 2 4
+deny(0) = 2 4
+
+Player 0  |  1,6
+Player 1  |  1,1,4
+Player 2  |  
+
+bid(0) = 1 6
+confirm(1) = 1 6
+
+Player 0  |  2
+Player 1  |  1,1,6
+Player 2  |  
+
+bid(1) = 2 1
+deny(0) = 2 1
+
+Agent lost
