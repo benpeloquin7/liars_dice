@@ -126,7 +126,7 @@ class HonestProbabilisticAgent(Agent):
         """
         Assign a probability that a bid is true (i.e. |value| >= bid_count)
         """
-        result = sum([self.confirmProbability(totalDice, i) for i in range(bidCount, totalDice)])
+        result = sum([self.confirmProbability(totalDice, i) for i in range(bidCount, totalDice + 1)])
         return result
 
     def assignProbablities(self, gameState):
@@ -138,7 +138,6 @@ class HonestProbabilisticAgent(Agent):
         probActionTuples = []
 
         for action in legalActions:
-            pdb.set_trace()
             currentHand = gameState.hands[self.agentIndex]
             currentAction = action
             remainingTotalDice = gameState.totalNumDice - gameState.numDicePerPlayer[self.agentIndex]
