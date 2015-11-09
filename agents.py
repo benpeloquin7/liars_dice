@@ -116,9 +116,6 @@ class HonestProbabilisticAgent(Agent):
         """
         Binomial coefficient: (n! / (n-k)!k!)
         """
-        if k > n:
-            k = n
-
         return float(math.factorial(n)) / (math.factorial(n - k) * math.factorial(k))
         # nFact = math.factorial(n)
         # kFact = math.factorial(k)
@@ -153,7 +150,12 @@ class HonestProbabilisticAgent(Agent):
             remainingTotalDice = gameState.totalNumDice - gameState.numDicePerPlayer[self.agentIndex]
             assert remainingTotalDice > 0
             remainingActionCount = currentAction[2] - currentHand[currentAction[1]]
-            if remainingActionCount > 0:
+            if remainingActionCount > remainingTotalDice:
+                if action[0] == 'deny':
+                    probActionTuples.append((1, action))
+                else:
+                    probActionTuples.append((0, action))
+            elif remainingActionCount > 0:
                  # or (action[0] == "confirm" and remainingActionCount == 0)
                 if action[0] == "bid":
                     probActionTuples.append((self.bidProbability(remainingTotalDice, remainingActionCount), action))
