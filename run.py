@@ -22,4 +22,16 @@ def playGame():
             print '----------------------------------\n'
             print 'Player %d won!' % i
 
+def simulateGames(numGames, agents = None):
+
+    if agents is None:
+        honAgent = honestAgent()
+        randAgent1 = RandomAgent()
+        randAgent2 = RandomAgent()
+
+        agents = [honAgent, randAgent1, randAgent2]
+
+    for i in range(numGames):
+        playGame(agents)
+
 playGame()
