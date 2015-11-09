@@ -89,6 +89,7 @@ class MedialGameState(GameState):
         self.currentPlayerIndex = currentPlayerIndex
         self.bid = bid
         self.numDicePerPlayer = numDicePerPlayer
+        self.totalNumDice = sum(numDicePerPlayer)
 
     def getLegalActions(self):
         """

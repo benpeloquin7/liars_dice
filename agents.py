@@ -18,7 +18,12 @@ class OracleAgent:
         legalActions = gameState.getLegalActions()
         goodActions = []
         def checkTrue(bid):
-            (bidstr, value, count, agentIndex) = bid
+            #If no bid has been placed, bid.
+            try:
+                (bidstr, value, count, agentIndex) = bid
+            except TypeError:
+                return 1
+
             s = 0
             for hand in gameState.hands:
                 s += hand[value]
@@ -35,12 +40,14 @@ class OracleAgent:
             if(checkTrue(act) > 0):
                 goodActions.append(act)
 
-        if gameState.bid is not None:
+        ev = checkTrue(gameState.bid)
+        if ev != 1:
             bid = gameState.bid
-            if checkTrue(gameState.bid) == 0:
+            if ev == 0:
                 return ('deny', bid[1], bid[2], bid[3])
-            elif checkTrue(gameState.bid) == 2:
+            elif ev == 2:
                 return ('confirm', bid[1], bid[2], bid[3])
+
         else:
             ix = random.randint(0, len(goodActions)-1)
             return goodActions[ix]
@@ -109,6 +116,9 @@ class HonestProbabilisticAgent(Agent):
         """
         Binomial coefficient: (n! / (n-k)!k!)
         """
+        if k > n:
+            k = n
+
         return float(math.factorial(n)) / (math.factorial(n - k) * math.factorial(k))
         # nFact = math.factorial(n)
         # kFact = math.factorial(k)
@@ -120,7 +130,7 @@ class HonestProbabilisticAgent(Agent):
         Assign a probability that a confirmation is true (i.e. |value| == bid_count)
         """
         result = self.choose(totalDice, bidCount) * P**bidCount * (1 - P)**(totalDice-bidCount)
-        return result        
+        return result
 
     def bidProbability(self, totalDice, bidCount):
         """
@@ -175,8 +185,8 @@ class HonestProbabilisticAgent(Agent):
         prob, bestProbabilityAction = max(probabilities)
         return bestProbabilityAction
 
-numDicePerPlayer = [2, 2]
-honestAgent = HonestProbabilisticAgent(0)
-igs = InitialGameState(numDicePerPlayer, honestAgent.agentIndex)
-print igs.hands[honestAgent.agentIndex]
-print honestAgent.chooseAction(igs)
+#numDicePerPlayer = [2, 2]
+#honestAgent = HonestProbabilisticAgent(0)
+#igs = InitialGameState(numDicePerPlayer, honestAgent.agentIndex)
+#print igs.hands[honestAgent.agentIndex]
+#print honestAgent.chooseAction(igs)
