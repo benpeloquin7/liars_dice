@@ -4,6 +4,8 @@ import itertools
 import math
 import pdb
 
+P = float(1)/DICE_SIDES
+
 class Agent:
     def chooseAction(self, gameState):
         raise Exception('abstract')
@@ -66,19 +68,28 @@ class HonestProbabilisticAgent(Agent):
     def __init__(self, agentIndex):
         self.agentIndex = agentIndex
 
-    def bidProbability(self, bid, numDice):
+    def choose(self, n, k):
+        """
+        Binomial coefficient: (n! / (n-k)!k!)
+        """
+        return float(math.factorial(n)) / (math.factorial(n - k) * math.factorial(k))
+        # nFact = math.factorial(n)
+        # kFact = math.factorial(k)
+        # nMinusKFact = math.factorial(n - k)
+        # return float(nFact) / (kFact * nMinusKFact)
+
+    def confirmProbability(self, totalDice, bidCount):
+        """
+        Assign a probability that a confirmation is true (i.e. |value| == bid_count)
+        """
+        result = self.choose(totalDice, bidCount) * P**bidCount * (1 - P)**(totalDice-bidCount)
+        return result        
+
+    def bidProbability(self, totalDice, bidCount):
         """
         Assign a probability that a bid is true (i.e. |value| >= bid_count)
         """
-        def choose(n, k):
-            nFact = math.factorial(n)
-            kFact = math.factorial(k)
-            nMinusKFact = math.factorial(n - k)
-            return float(nFact) / (kFact * nMinusKFact)
-        n = numDice
-        k = bid[2]
-        p = float(1)/6
-        result = sum([(choose(n, k) * p**i * (1 - p)**(n-i)) for i in range(k, n + 1)])
+        result = sum([self.confirmProbability(totalDice, i) for i in range(bidCount, totalDice)])
         return result
 
     def assignProbablities(self, gameState):
@@ -88,19 +99,48 @@ class HonestProbabilisticAgent(Agent):
         legalActions = gameState.getLegalActions()
         numDiceActive = sum(gameState.numDicePerPlayer)
         probActionTuples = []
+
         for action in legalActions:
-            if action[0] == "bid":
-                probActionTuples.append((self.bidProbability(action, numDiceActive), action))
-            elif action[0] == "deny":
-                probActionTuples.append((1 - self.bidProbability(action, numDiceActive), action))
+            pdb.set_trace()
+            currentHand = gameState.hands[self.agentIndex]
+            currentAction = action
+            remainingTotalDice = gameState.totalNumDice - gameState.numDicePerPlayer[self.agentIndex]
+            assert remainingTotalDice > 0
+            remainingActionCount = currentAction[2] - currentHand[currentAction[1]]
+            if remainingActionCount > 0:
+                 # or (action[0] == "confirm" and remainingActionCount == 0)
+                if action[0] == "bid":
+                    probActionTuples.append((self.bidProbability(remainingTotalDice, remainingActionCount), action))
+                elif action[0] == "deny":
+                    probActionTuples.append((1 - self.bidProbability(remainingTotalDice, remainingActionCount), action))
+                else:
+                    probActionTuples.append((self.confirmProbability(remainingTotalDice, remainingActionCount), action))
+            elif remainingActionCount == 0:
+                if action[0] == "bid":
+                    probActionTuples.append((1, action))
+                elif action[0] == "deny":
+                    probActionTuples.append((0, action))
+                else:
+                    probActionTuples.append((self.confirmProbability(remainingTotalDice, remainingActionCount), action))
             else:
-                probActionTuples.append((float(1)/len(legalActions), action))
+                if action[0] == "bid":
+                    probActionTuples.append((1, action))
+                else:
+                    probActionTuples.append((0, action))
+
         return probActionTuples
 
+    def chooseAction(self, gameState):
+        """
+        Return action with highest probability
+        """
+        probabilities = self.assignProbablities(gameState)
+        print probabilities
+        prob, bestProbabilityAction = max(probabilities)
+        return bestProbabilityAction
 
-
-action = ('bid', 1, 2, 0)
 numDicePerPlayer = [2, 2]
 honestAgent = HonestProbabilisticAgent(0)
 igs = InitialGameState(numDicePerPlayer, honestAgent.agentIndex)
-print honestAgent.assignProbablities(igs)
+print igs.hands[honestAgent.agentIndex]
+print honestAgent.chooseAction(igs)
