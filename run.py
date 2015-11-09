@@ -1,5 +1,6 @@
 from liarsdice import *
 from agents import *
+import random
 
 # Main game play
 
@@ -8,7 +9,8 @@ from agents import *
 
 def playGame(firstAgentOnly, logFilePath = None):
     agents = [HumanAgent(i) for i in range(NUM_PLAYERS)]
-    gameState = InitialGameState([INITIAL_NUM_DICE_PER_PLAYER] * NUM_PLAYERS, 0)
+    # start with a random player
+    gameState = InitialGameState([INITIAL_NUM_DICE_PER_PLAYER] * NUM_PLAYERS, random.randint(0, NUM_PLAYERS - 1))
     logFile = open(logFilePath, 'w') if logFilePath is not None else None
     log(logFile, '----------------------------------\nGame 1:')
     while not gameState.isGameOver():
