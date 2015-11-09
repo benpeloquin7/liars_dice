@@ -48,4 +48,16 @@ def log(logFile, text):
     if logFile is not None:
         print >>logFile, text
 
+def simulateGames(numGames, agents = None):
+
+    if agents is None:
+        honAgent = honestAgent()
+        randAgent1 = RandomAgent()
+        randAgent2 = RandomAgent()
+
+        agents = [honAgent, randAgent1, randAgent2]
+
+    for i in range(numGames):
+        playGame(agents)
+
 playGame(True, 'data/gameData.txt')
