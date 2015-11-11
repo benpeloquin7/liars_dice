@@ -192,3 +192,78 @@ class HonestProbabilisticAgent(Agent):
 #igs = InitialGameState(numDicePerPlayer, honestAgent.agentIndex)
 #print igs.hands[honestAgent.agentIndex]
 #print honestAgent.chooseAction(igs)
+
+class PureQLearningAgent(Agent):
+    def __init__(self, agentIndex, featureExtractor, exploreProb, discount, trainingOpponents):
+        self.featureExtractor = featureExtractor
+        self.weights = Counter()
+        self.exploreProb = exploreProb
+        self.discount = discount
+        self.players = [self] + trainingOpponents
+        self.numIters = 0
+        self.agentIndex = agentIndex
+
+        assert len(trainingOpponents) == NUM_PLAYERS - 1
+
+    def learn(self, numGames):
+        for _ in range(numGames):
+            state = self.initializeGame()
+            while not state.isGameOver(self.agentIndex):
+                # agent or any opponent chooses action
+                action = self.players[state.getCurrentPlayerIndex()].chooseAction(state)
+                newState = state.generateSuccessor(action)
+
+                if newState.getCurrentPlayerIndex() == self.agentIndex:
+                    if oldState is not None:
+                        assert oldAction is not None
+                        # consider computing the rewards for dice lost between rounds
+                        self.incorporateFeedback(oldState, oldAction, newState)
+
+                    oldState = newState
+                    oldAction = action
+
+                state = newState
+
+            if oldState is not None:
+                assert oldAction is not None
+                self.incorporateFeedback(oldState, oldAction, state, self.computeReward(newState))
+
+    def incorporateFeedback(self, oldState, action, newState, reward = 0):
+        prediction = self.getQ(oldState, action)
+        actualUtility = reward if newState.isGameOver(self.agentIndex) else \
+            reward + self.discount * max(self.getQ(newState, a) for a in newState.getLegalActions())
+        coefficient = self.getStepSize() * (prediction - actualUtility)
+        for name, featureValue in self.featureExtractor(oldState, action, self.agentIndex):
+            self.weights[name] -= coefficient * float(featureValue)
+
+    def chooseAction(self, gameState):
+        self.numIters += 1
+        if random.random() < self.exploreProb:
+            a = random.choice(gameState.getLegalActions())
+            return a
+        else:
+            a = max((self.getQ(gameState, action), action) for action in gameState.getLegalActions())[1]
+            return a
+
+    def initializeGame(self):
+        return InitialGameState([INITIAL_NUM_DICE_PER_PLAYER] * NUM_PLAYERS, random.randint(0, NUM_PLAYERS - 1))
+
+    def getQ(self, state, action):
+        score = 0
+        for f, v in self.featureExtractor(state, action, self.agentIndex):
+            score += self.weights[f] * v
+        return score
+
+    def getStepSize(self):
+        return 1.0 / math.sqrt(self.numIters)
+
+    def computeReward(self, state):
+        return 1000 if state.isWin(self.agentIndex) else -1000
+
+def featureExtractor1(state, action, agentIndex):
+    features = []
+    verb, value, count, _ = action
+    numDicePerPlayer = state.numDicePerPlayer
+    totalNumDice = state.totalNumDice
+    hand = state.hands[agentIndex]
+    bid = state.bid
