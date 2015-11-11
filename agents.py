@@ -264,6 +264,23 @@ def featureExtractor1(state, action, agentIndex):
     features = []
     verb, value, count, _ = action
     numDicePerPlayer = state.numDicePerPlayer
+    handSize = numDicePerPlayer[agentIndex]
     totalNumDice = state.totalNumDice
     hand = state.hands[agentIndex]
     bid = state.bid
+
+    # pure state features
+    features.append(('numDice', handSize, 1))
+    features.append(('numDiceDifference', totalNumDice - handSize, 1))
+
+    features.append(('totalDice-verb-count', (totalNumDice, verb, count), 1)) # magnitude of action given number of dice
+    features.append(('handSize-verb-count', (handSize, verb, count), 1)) # magnitude of action given our hand size
+    # features.append(('', (hand[value] > 0, verb), 1)) # doing this verb given existence of corresponding value in your hand
+    features.append(('handValue-verb-count', (hand[value], verb, count), 1)) # magnitude of action given how many in hand
+    features.append(('bidIsNone-verb-count', (bid is None, verb, count), 1)) # magnitude of an initial state action
+
+    if bid is not None:
+        _, bidValue, bidCount, _ = bid
+        features.append(('count-Minus-BidCount', (verb, count - bidCount), 1)) # how much you raise the bid by
+
+    return features
