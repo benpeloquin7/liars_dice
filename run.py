@@ -78,11 +78,17 @@ def simulateGames(numGames):
     # agentses.append([HonestProbabilisticAgent(0), HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)])
     # names.append('hhh')
 
-    pureQLearnAgent = PureQLearningAgent(0, featureExtractor1, 0.2, 0.1)
+    pureQLearnAgent = PureQLearningAgent(0, featureExtractor1, 0.05, 0.3)
     pureQLearnAgentOpponents = [HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)]
-    pureQLearnAgent.learn(500, pureQLearnAgentOpponents)
+    pureQLearnAgent.learn(2500, pureQLearnAgentOpponents)
     agentses.append([pureQLearnAgent] + pureQLearnAgentOpponents)
     names.append("qhh")
+
+    # pureQLearnAgent = PureQLearningAgent(0, featureExtractor1, 0.05, 0.3)
+    # pureQLearnAgentOpponents = [RandomAgent(1), RandomAgent(2)]
+    # pureQLearnAgent.learn(2500, pureQLearnAgentOpponents)
+    # agentses.append([pureQLearnAgent] + pureQLearnAgentOpponents)
+    # names.append("qrr")
 
     weightsFile = open('weights', 'w')
     printWeights(weightsFile, pureQLearnAgent.weights)
