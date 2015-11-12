@@ -1,6 +1,8 @@
 from liarsdice import *
 from agents import *
 import random
+import os
+from os import path
 
 # Main game play
 
@@ -60,22 +62,31 @@ def simulateGames(numGames):
 
     agentses = []
     names = []
-    agentses.append([HonestProbabilisticAgent(0), RandomAgent(1), RandomAgent(2)])
-    names.append('hrr')
+    # agentses.append([HonestProbabilisticAgent(0), RandomAgent(1), RandomAgent(2)])
+    # names.append('hrr')
+    #
+    # agentses.append([OracleAgent(0), RandomAgent(1), RandomAgent(2)])
+    # names.append('orr')
+    #
+    # agentses.append([OracleAgent(0), HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)])
+    # names.append('ohh')
+    #
+    # agentses.append([HonestProbabilisticAgent(0), HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)])
+    # names.append('hhh')
 
-    agentses.append([OracleAgent(0), RandomAgent(1), RandomAgent(2)])
-    names.append('orr')
-
-    agentses.append([OracleAgent(0), HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)])
-    names.append('ohh')
-
-    agentses.append([HonestProbabilisticAgent(0), HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)])
-    names.append('hhh')
+    pureQLearnAgent = PureQLearningAgent(0, featureExtractor1, 0.3, 0.2)
+    pureQLearnAgentOpponents = [HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)]
+    pureQLearnAgent.learn(500, pureQLearnAgentOpponents)
+    agentses.append([pureQLearnAgent, HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)])
+    names.append("qhh")
 
     for i, agents in enumerate(agentses):
         name = names[i]
 
         d[name] = 0.0
+        if not path.exists(path.join('data', name)):
+            os.makedirs(path.join('data', name))
+
         for j in range(numGames):
             victory = playGame(True, agents, 'data/'+name+'/gameData'+str(j))
             if victory:
@@ -89,3 +100,4 @@ def simulateGames(numGames):
 #playGame(True, 'data/gameData.txt')
 #print playGame(True, [HonestProbabilisticAgent(0), HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)])
 d = simulateGames(5000)
+print d

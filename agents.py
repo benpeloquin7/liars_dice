@@ -183,7 +183,7 @@ class HonestProbabilisticAgent(Agent):
         Return action with highest probability
         """
         probabilities = self.assignProbablities(gameState)
-        print probabilities
+        #print probabilities
         prob, bestProbabilityAction = max(probabilities)
         return bestProbabilityAction
 
@@ -194,23 +194,25 @@ class HonestProbabilisticAgent(Agent):
 #print honestAgent.chooseAction(igs)
 
 class PureQLearningAgent(Agent):
-    def __init__(self, agentIndex, featureExtractor, exploreProb, discount, trainingOpponents):
+    def __init__(self, agentIndex, featureExtractor, exploreProb, discount):
         self.featureExtractor = featureExtractor
         self.weights = Counter()
         self.exploreProb = exploreProb
         self.discount = discount
-        self.players = [self] + trainingOpponents
         self.numIters = 0
         self.agentIndex = agentIndex
 
+
+    def learn(self, numGames, trainingOpponents):
+        players = [self] + trainingOpponents
         assert len(trainingOpponents) == NUM_PLAYERS - 1
 
-    def learn(self, numGames):
         for _ in range(numGames):
             state = self.initializeGame()
+            oldState = None
             while not state.isGameOver(self.agentIndex):
                 # agent or any opponent chooses action
-                action = self.players[state.getCurrentPlayerIndex()].chooseAction(state)
+                action = players[state.getCurrentPlayerIndex()].chooseAction(state)
                 newState = state.generateSuccessor(action)
 
                 if newState.getCurrentPlayerIndex() == self.agentIndex:
@@ -239,11 +241,9 @@ class PureQLearningAgent(Agent):
     def chooseAction(self, gameState):
         self.numIters += 1
         if random.random() < self.exploreProb:
-            a = random.choice(gameState.getLegalActions())
-            return a
+            return random.choice(gameState.getLegalActions())
         else:
-            a = max((self.getQ(gameState, action), action) for action in gameState.getLegalActions())[1]
-            return a
+            return max((self.getQ(gameState, action), action) for action in gameState.getLegalActions())[1]
 
     def initializeGame(self):
         return InitialGameState([INITIAL_NUM_DICE_PER_PLAYER] * NUM_PLAYERS, random.randint(0, NUM_PLAYERS - 1))
@@ -270,17 +270,17 @@ def featureExtractor1(state, action, agentIndex):
     bid = state.bid
 
     # pure state features
-    features.append(('numDice', handSize, 1))
-    features.append(('numDiceDifference', totalNumDice - handSize, 1))
+    features.append((('numDice', handSize), 1))
+    features.append((('numDiceDifference', totalNumDice - handSize), 1))
 
-    features.append(('totalDice-verb-count', (totalNumDice, verb, count), 1)) # magnitude of action given number of dice
-    features.append(('handSize-verb-count', (handSize, verb, count), 1)) # magnitude of action given our hand size
-    # features.append(('', (hand[value] > 0, verb), 1)) # doing this verb given existence of corresponding value in your hand
-    features.append(('handValue-verb-count', (hand[value], verb, count), 1)) # magnitude of action given how many in hand
-    features.append(('bidIsNone-verb-count', (bid is None, verb, count), 1)) # magnitude of an initial state action
+    features.append((('totalDice-verb-count', (totalNumDice, verb, count)), 1)) # magnitude of action given number of dice
+    features.append((('handSize-verb-count', (handSize, verb, count)), 1)) # magnitude of action given our hand size
+    # features.append((('', (hand[value] > 0, verb)), 1)) # doing this verb given existence of corresponding value in your hand
+    features.append((('handValue-verb-count', (hand[value], verb, count)), 1)) # magnitude of action given how many in hand
+    features.append((('bidIsNone-verb-count', (bid is None, verb, count)), 1)) # magnitude of an initial state action
 
     if bid is not None:
         _, bidValue, bidCount, _ = bid
-        features.append(('count-Minus-BidCount', (verb, count - bidCount), 1)) # how much you raise the bid by
+        features.append((('count-Minus-BidCount', (verb, count - bidCount)), 1)) # how much you raise the bid by
 
     return features
