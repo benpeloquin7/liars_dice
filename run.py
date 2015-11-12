@@ -1,13 +1,19 @@
 from liarsdice import *
 from agents import *
 import random
+import os
+from os import path
 
 # Main game play
 
 # while num players is more than one
 # Counter of number of players?
 
-def playGame(firstAgentOnly, agents = None, logFilePath = None):
+def playGame(firstAgentOnly, agents = None, logFilePath = None, shouldPrint = True):
+    def printOutput(text):
+        if shouldPrint:
+            print text
+
     if agents is None:
         agents = [HumanAgent(i) for i in range(NUM_PLAYERS)]
     # start with a random player
@@ -15,8 +21,8 @@ def playGame(firstAgentOnly, agents = None, logFilePath = None):
     logFile = open(logFilePath, 'w') if logFilePath is not None else None
     log(logFile, '----------------------------------\nGame 1:')
     while not gameState.isGameOver():
-        print '----------------------------------\n'
-        print str(gameState)
+        printOutput('----------------------------------\n')
+        printOutput(str(gameState))
         # only log hand for initial game state
         if isinstance(gameState, InitialGameState):
             log(logFile, '\n' + gameState.getHandsString())
@@ -39,8 +45,8 @@ def playGame(firstAgentOnly, agents = None, logFilePath = None):
 
     for i in range(NUM_PLAYERS):
         if gameState.isWin(i):
-            print '----------------------------------\n'
-            print 'Player %d won!' % i
+            printOutput('----------------------------------\n')
+            printOutput('Player %d won!' % i)
 
     if gameState.isWin(0):
         log(logFile, '\nAgent 0 won')
@@ -60,24 +66,42 @@ def simulateGames(numGames):
 
     agentses = []
     names = []
-    agentses.append([HonestProbabilisticAgent(0), RandomAgent(1), RandomAgent(2)])
-    names.append('hrr')
+    # agentses.append([HonestProbabilisticAgent(0), RandomAgent(1), RandomAgent(2)])
+    # names.append('hrr')
+    #
+    # agentses.append([OracleAgent(0), RandomAgent(1), RandomAgent(2)])
+    # names.append('orr')
+    #
+    # agentses.append([OracleAgent(0), HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)])
+    # names.append('ohh')
+    #
+    # agentses.append([HonestProbabilisticAgent(0), HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)])
+    # names.append('hhh')
 
-    agentses.append([OracleAgent(0), RandomAgent(1), RandomAgent(2)])
-    names.append('orr')
+    pureQLearnAgent = PureQLearningAgent(0, featureExtractor1, 0.05, 0.3)
+    pureQLearnAgentOpponents = [HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)]
+    pureQLearnAgent.learn(2500, pureQLearnAgentOpponents)
+    agentses.append([pureQLearnAgent] + pureQLearnAgentOpponents)
+    names.append("qhh")
 
-    agentses.append([OracleAgent(0), HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)])
-    names.append('ohh')
+    # pureQLearnAgent = PureQLearningAgent(0, featureExtractor1, 0.05, 0.3)
+    # pureQLearnAgentOpponents = [RandomAgent(1), RandomAgent(2)]
+    # pureQLearnAgent.learn(2500, pureQLearnAgentOpponents)
+    # agentses.append([pureQLearnAgent] + pureQLearnAgentOpponents)
+    # names.append("qrr")
 
-    agentses.append([HonestProbabilisticAgent(0), HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)])
-    names.append('hhh')
-
+    weightsFile = open('weights', 'w')
+    printWeights(weightsFile, pureQLearnAgent.weights)
+    weightsFile.close()
     for i, agents in enumerate(agentses):
         name = names[i]
 
         d[name] = 0.0
+        if not path.exists(path.join('data', name)):
+            os.makedirs(path.join('data', name))
+
         for j in range(numGames):
-            victory = playGame(True, agents, 'data/'+name+'/gameData'+str(j))
+            victory = playGame(True, agents, 'data/'+name+'/gameData'+str(j), False)
             if victory:
                 d[name] += 1
 
@@ -85,7 +109,11 @@ def simulateGames(numGames):
 
     return d
 
+def printWeights(weightsFile, weights):
+    for k, v in weights.iteritems():
+        print >>weightsFile, str(k) + ' --> ' + str(v)
 
 #playGame(True, 'data/gameData.txt')
 #print playGame(True, [HonestProbabilisticAgent(0), HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)])
 d = simulateGames(5000)
+print d

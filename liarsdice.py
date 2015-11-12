@@ -22,7 +22,10 @@ class GameState:
     def isLose(self, playerIndex):
         return False
 
-    def isGameOver(self):
+    def isGameOver(self, playerIndex = None):
+        if playerIndex is not None:
+            return self.isWin(playerIndex) or self.isLose(playerIndex)
+
         # only one player can have dice for the game to be over
         return 1 == sum(1 for numDice in self.numDicePerPlayer if numDice > 0)
 

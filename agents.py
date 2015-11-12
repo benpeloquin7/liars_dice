@@ -183,7 +183,7 @@ class HonestProbabilisticAgent(Agent):
         Return action with highest probability
         """
         probabilities = self.assignProbablities(gameState)
-        print probabilities
+        #print probabilities
         prob, bestProbabilityAction = max(probabilities)
         return bestProbabilityAction
 
@@ -192,3 +192,98 @@ class HonestProbabilisticAgent(Agent):
 #igs = InitialGameState(numDicePerPlayer, honestAgent.agentIndex)
 #print igs.hands[honestAgent.agentIndex]
 #print honestAgent.chooseAction(igs)
+
+class PureQLearningAgent(Agent):
+    def __init__(self, agentIndex, featureExtractor, exploreProb, discount):
+        self.featureExtractor = featureExtractor
+        self.weights = Counter()
+        self.exploreProb = exploreProb
+        self.discount = discount
+        self.numIters = 0
+        self.agentIndex = agentIndex
+
+
+    def learn(self, numGames, trainingOpponents):
+        players = [self] + trainingOpponents
+        assert len(trainingOpponents) == NUM_PLAYERS - 1
+
+        for _ in range(numGames):
+            state = self.initializeGame()
+            oldState = None
+            oldAction = None
+            while not state.isGameOver(self.agentIndex):
+                # agent or any opponent chooses action
+                currentPlayerIndex = state.getCurrentPlayerIndex()
+                action = players[currentPlayerIndex].chooseAction(state)
+                newState = state.generateSuccessor(action)
+
+                if newState.getCurrentPlayerIndex() == self.agentIndex:
+                    if oldState is not None:
+                        assert oldAction is not None
+                        # consider computing the rewards for dice lost between rounds
+                        self.incorporateFeedback(oldState, oldAction, newState)
+
+                if currentPlayerIndex == self.agentIndex:
+                    oldState = state
+                    oldAction = action
+
+                state = newState
+
+            if oldState is not None:
+                assert oldAction is not None
+                self.incorporateFeedback(oldState, oldAction, state, self.computeReward(newState))
+
+    def incorporateFeedback(self, oldState, action, newState, reward = 0):
+        prediction = self.getQ(oldState, action)
+        actualUtility = reward if newState.isGameOver(self.agentIndex) else \
+            reward + self.discount * max(self.getQ(newState, a) for a in newState.getLegalActions())
+        coefficient = self.getStepSize() * (prediction - actualUtility)
+        for name, featureValue in self.featureExtractor(oldState, action, self.agentIndex):
+            self.weights[name] -= coefficient * float(featureValue)
+
+    def chooseAction(self, gameState):
+        self.numIters += 1
+        if random.random() < self.exploreProb:
+            return random.choice(gameState.getLegalActions())
+        else:
+            return max((self.getQ(gameState, action), action) for action in gameState.getLegalActions())[1]
+
+    def initializeGame(self):
+        return InitialGameState([INITIAL_NUM_DICE_PER_PLAYER] * NUM_PLAYERS, random.randint(0, NUM_PLAYERS - 1))
+
+    def getQ(self, state, action):
+        score = 0
+        for f, v in self.featureExtractor(state, action, self.agentIndex):
+            score += self.weights[f] * v
+        return score
+
+    def getStepSize(self):
+        return 1.0 / math.sqrt(self.numIters)
+
+    def computeReward(self, state):
+        return 1000 if state.isWin(self.agentIndex) else -1000
+
+def featureExtractor1(state, action, agentIndex):
+    features = []
+    verb, value, count, _ = action
+    numDicePerPlayer = state.numDicePerPlayer
+    handSize = numDicePerPlayer[agentIndex]
+    totalNumDice = state.totalNumDice
+    hand = state.hands[agentIndex]
+    bid = state.bid
+
+    # pure state features
+    features.append((('numDice', handSize), 1))
+    features.append((('numDiceDifference', totalNumDice - handSize), 1))
+
+    features.append((('totalDice-verb-count', (totalNumDice, verb, count)), 1)) # magnitude of action given number of dice
+    features.append((('handSize-verb-count', (handSize, verb, count)), 1)) # magnitude of action given our hand size
+    # features.append((('', (hand[value] > 0, verb)), 1)) # doing this verb given existence of corresponding value in your hand
+    features.append((('handValue-verb-count', (hand[value], verb, count)), 1)) # magnitude of action given how many in hand
+    features.append((('bidIsNone-verb-count', (bid is None, verb, count)), 1)) # magnitude of an initial state action
+
+    if bid is not None:
+        _, bidValue, bidCount, _ = bid
+        features.append((('count-Minus-BidCount', (verb, count - bidCount)), 1)) # how much you raise the bid by
+
+    return features
