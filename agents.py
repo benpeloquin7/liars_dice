@@ -210,9 +210,11 @@ class PureQLearningAgent(Agent):
         for _ in range(numGames):
             state = self.initializeGame()
             oldState = None
+            oldAction = None
             while not state.isGameOver(self.agentIndex):
                 # agent or any opponent chooses action
-                action = players[state.getCurrentPlayerIndex()].chooseAction(state)
+                currentPlayerIndex = state.getCurrentPlayerIndex()
+                action = players[currentPlayerIndex].chooseAction(state)
                 newState = state.generateSuccessor(action)
 
                 if newState.getCurrentPlayerIndex() == self.agentIndex:
@@ -221,7 +223,8 @@ class PureQLearningAgent(Agent):
                         # consider computing the rewards for dice lost between rounds
                         self.incorporateFeedback(oldState, oldAction, newState)
 
-                    oldState = newState
+                if currentPlayerIndex == self.agentIndex:
+                    oldState = state
                     oldAction = action
 
                 state = newState
