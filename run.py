@@ -9,7 +9,11 @@ from os import path
 # while num players is more than one
 # Counter of number of players?
 
-def playGame(firstAgentOnly, agents = None, logFilePath = None):
+def playGame(firstAgentOnly, agents = None, logFilePath = None, shouldPrint = True):
+    def printOutput(text):
+        if shouldPrint:
+            print text
+
     if agents is None:
         agents = [HumanAgent(i) for i in range(NUM_PLAYERS)]
     # start with a random player
@@ -17,8 +21,8 @@ def playGame(firstAgentOnly, agents = None, logFilePath = None):
     logFile = open(logFilePath, 'w') if logFilePath is not None else None
     log(logFile, '----------------------------------\nGame 1:')
     while not gameState.isGameOver():
-        print '----------------------------------\n'
-        print str(gameState)
+        printOutput('----------------------------------\n')
+        printOutput(str(gameState))
         # only log hand for initial game state
         if isinstance(gameState, InitialGameState):
             log(logFile, '\n' + gameState.getHandsString())
@@ -41,8 +45,8 @@ def playGame(firstAgentOnly, agents = None, logFilePath = None):
 
     for i in range(NUM_PLAYERS):
         if gameState.isWin(i):
-            print '----------------------------------\n'
-            print 'Player %d won!' % i
+            printOutput('----------------------------------\n')
+            printOutput('Player %d won!' % i)
 
     if gameState.isWin(0):
         log(logFile, '\nAgent 0 won')
@@ -88,7 +92,7 @@ def simulateGames(numGames):
             os.makedirs(path.join('data', name))
 
         for j in range(numGames):
-            victory = playGame(True, agents, 'data/'+name+'/gameData'+str(j))
+            victory = playGame(True, agents, 'data/'+name+'/gameData'+str(j), False)
             if victory:
                 d[name] += 1
 
