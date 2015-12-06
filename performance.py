@@ -7,41 +7,41 @@ from liarsdice import *
 from agents import *
 
 
-def simulateGame(competitors=None):
+def simulateGame(allPlayers=None):
 	"""
-	:param agents:  Agent set
-	:return:        Boolean if our agent won
+	:param allPlayers:  Agent set
+	:return:        	Boolean if our agent won
 	"""
-	if competitors is None:
-		competitors = [HumanAgent(i) for i in range(NUM_PLAYERS)]
+	if allPlayers is None:
+		allPlayers = [HumanAgent(i) for i in range(NUM_PLAYERS)]
 
 	gameState = InitialGameState([INITIAL_NUM_DICE_PER_PLAYER] * NUM_PLAYERS, random.randint(0, NUM_PLAYERS - 1))
 	while not gameState.isGameOver():
-		agent = competitors[gameState.getCurrentPlayerIndex()]
+		agent = allPlayers[gameState.getCurrentPlayerIndex()]
 		chosenAction = agent.chooseAction(gameState)
 		gameState = gameState.generateSuccessor(chosenAction)
 
 	return gameState.isWin(0)
 
-def simulateNGames(numGames=30, competitors=None, verbose=False):
+def simulateNGames(numGames=30, allPlayers=None, verbose=False):
 	"""
 	Simulate numGames given some competitorSet
 	Returns tuple competitor set string and win %
 	"""
 	gameData = []
-	competitorStr, allCompetitors = competitors
+	playerStr, playerObjects = allPlayers
 	if verbose: print("simulating " + str(numGames) + " games...")
 
 	for i in range(numGames):
 		if verbose:
 			print i
-		gameData.append(simulateGame(allCompetitors))
+		gameData.append(simulateGame(playerObjects))
 
-	return (competitorStr, float(sum(gameData)) / numGames)
+	return (playerStr, float(sum(gameData)) / numGames)
 
-def competitorSet(competitors="qhh", featureExtractor=None, exploreProb=None, discount=None, numIters = 2500):
+def playerSet(allPlayers="qhh", featureExtractor=None, exploreProb=None, discount=None, numIters = 2500):
 	"""
-	:param competitors:         Competitor set string acronym
+	:param allPlayers:         	Player set string acronym
 	:param featureExtractor:    Q-learning feature set
 	:param exploreProb:         Q-learning gamma
 	:param discount:            Q-learning discount
@@ -50,7 +50,7 @@ def competitorSet(competitors="qhh", featureExtractor=None, exploreProb=None, di
 	"""
 	# Populate player set
 	agentses = []
-	for i, agent in enumerate(competitors.lower()):
+	for i, agent in enumerate(allPlayers.lower()):
 		if agent == "q":
 			pureQLearnAgent = PureQLearningAgent(i, featureExtractor, exploreProb, discount)
 			agentses.append(pureQLearnAgent)
@@ -69,20 +69,20 @@ def competitorSet(competitors="qhh", featureExtractor=None, exploreProb=None, di
 			opponents = agentses[:i]+agentses[i+1:]
 			agent.learn(numIters, opponents)
 
-	return (competitors, agentses)
+	return (allPlayers, agentses)
 
-def collectData(sampleSize=30, numberOfSamples=50, competitors=None, verbose=True):
+def collectData(sampleSize=30, numberOfSamples=50, allPlayers=None, verbose=True):
 	"""
 	:param sampleSize:          Sample size of win % estimates
 	:param numberOfSamples:     Number of samples we want
-	:param competitors:         Competitor set
+	:param allPlayers:         	Player set
 	:return:                    List of tuples [("competitorSet", win%)...]
 	"""
 
 	if verbose: print("Collecting " + str(numberOfSamples) + " estimates with sample size " + str(sampleSize))
 	data = []
 	for _ in range(numberOfSamples):
-		data.append(simulateNGames(sampleSize, competitors))
+		data.append(simulateNGames(sampleSize, allPlayers))
 	return data
 
 def calcMean(data):
@@ -109,7 +109,7 @@ def extractScores(data):
 
 def tuneHyperParams(exploreProbRange=range(1, 10), \
 					discountRange=range(0, 11), \
-					competitorStr="qhh", \
+					allPlayers="qhh", \
 					numIters=100, \
 					featureExtractor = featureExtractor1, \
 					verbose=True):
@@ -135,9 +135,9 @@ def tuneHyperParams(exploreProbRange=range(1, 10), \
 			if verbose:
 				print("Tuning q with epsilon=" + str(epsilonReal) + " and gamma=" + str(gammaReal) + " for numIters=" + str(numIters) + "...")
 			# Get competitor set
-			comps = competitorSet("qhh", featureExtractor, exploreProb=epsilonReal, discount=gammaReal, numIters = numIters)
+			players = playerSet("qhh", featureExtractor, exploreProb=epsilonReal, discount=gammaReal, numIters = numIters)
 			# Collect data - numberOfSamples (batch size) = 1 to speed things up
-			paramData.append((calcMean(extractScores(collectData(competitors=comps, sampleSize=100, numberOfSamples=1))), epsilonReal, gammaReal))
+			paramData.append((calcMean(extractScores(collectData(allPlayers=players, sampleSize=100, numberOfSamples=1))), epsilonReal, gammaReal))
 	return paramData
 
 # Generic mean and variance (may need to calc var some other way?)
@@ -146,8 +146,8 @@ competitors = ["qrr", "qhh", "qoo", "hrr", "hoo", "ohh", "orr"]
 means = []
 vars = []
 for c in competitors:
-	comps = competitorSet(c, featureExtractor1, exploreProb=0.05, discount=0.3, numIters=2500)
-	data = collectData(competitors = comps, sampleSize=30, numberOfSamples=100)
+	comps = playerSet(c, featureExtractor1, exploreProb=0.05, discount=0.3, numIters=2500)
+	data = collectData(allPlayers = comps, sampleSize=30, numberOfSamples=100)
 	scores = extractScores(data)
 	mu = calcMean(scores)
 	means.append(mu)
