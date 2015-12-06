@@ -335,3 +335,10 @@ class BayesianAgent(Agent):
                 denominator = float(sum(counter.itervalues()))
                 for key in counter.iterkeys():
                     counter[key] /= denominator
+
+    def chooseAction(self, gameState):
+        likeliestHands = self.getLikeliestHands(gameState)
+
+
+    def getLikeliestHands(self, gameState):
+        pass
