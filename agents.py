@@ -3,8 +3,11 @@ import random
 import itertools
 import math
 import pdb
+import itertools
+import operator
 
 P = float(1)/DICE_SIDES
+NEG_INFINITY = float("-Infinity")
 
 class Agent:
     def chooseAction(self, gameState):
@@ -18,44 +21,46 @@ class OracleAgent:
         self.agentIndex = agentIndex
 
     def chooseAction(self, gameState):
-        legalActions = gameState.getLegalActions()
-        goodActions = []
-        def checkTrue(bid):
-            #If no bid has been placed, bid.
-            try:
-                (bidstr, value, count, agentIndex) = bid
-            except TypeError:
-                return 1
+        return chooseActionGivenKnownHands(gameState, gameState.hands)
 
-            s = 0
-            for hand in gameState.hands:
-                s += hand[value]
 
-            if s > count:
-                return 1
-            elif s == count:
-                return 2
-            else:
-                return 0
+def chooseActionGivenKnownHands(gameState, hands):
+    legalActions = gameState.getLegalActions()
+    goodActions = []
+    def checkTrue(bid):
+        #If no bid has been placed, bid.
+        try:
+            (bidstr, value, count, agentIndex) = bid
+        except TypeError:
+            return 1
 
-        #Pick a list of true bids to make.
-        for act in legalActions:
-            if(checkTrue(act) > 0):
-                goodActions.append(act)
+        s = 0
+        for hand in hands:
+            s += hand[value]
 
-        ev = checkTrue(gameState.bid)
-        if ev != 1:
-            bid = gameState.bid
-            if ev == 0:
-                return ('deny', bid[1], bid[2], bid[3])
-            elif ev == 2:
-                return ('confirm', bid[1], bid[2], bid[3])
-
+        if s > count:
+            return 1
+        elif s == count:
+            return 2
         else:
-            ix = random.randint(0, len(goodActions)-1)
-            return goodActions[ix]
+            return 0
 
-        pass
+    #Pick a list of true bids to make.
+    for act in legalActions:
+        if(checkTrue(act) > 0):
+            goodActions.append(act)
+
+    ev = checkTrue(gameState.bid)
+    if ev != 1:
+        bid = gameState.bid
+        if ev == 0:
+            return ('deny', bid[1], bid[2], bid[3])
+        elif ev == 2:
+            return ('confirm', bid[1], bid[2], bid[3])
+
+    else:
+        ix = random.randint(0, len(goodActions)-1)
+        return goodActions[ix]
 
 class HumanAgent(Agent):
     def __init__(self, agentIndex):
@@ -289,12 +294,13 @@ def featureExtractor1(state, action, agentIndex):
     return features
 
 class BayesianAgent(Agent):
-    def __init__(self):
+    def __init__(self, agentIndex):
         # Matrix of probabilities given the number of relevant dice in the player's current
         # hand, and the max count of a previous bid for that die (which needs to go from 0 to
         # the total number of dice, inclusive)
         self.localConditionalProbabilities = [[Counter() for _ in range(INITIAL_NUM_DICE_PER_PLAYER + 1)]
                                               for _ in range(INITIAL_NUM_DICE_PER_PLAYER * NUM_PLAYERS + 1)]
+        self.agentIndex = agentIndex
 
     def learn(self, numGames, trainingPlayers):
         assert len(trainingPlayers) == NUM_PLAYERS
@@ -335,3 +341,45 @@ class BayesianAgent(Agent):
                 denominator = float(sum(counter.itervalues()))
                 for key in counter.iterkeys():
                     counter[key] /= denominator
+
+    def chooseAction(self, gameState):
+        likeliestHands = self.getLikeliestHands(gameState)
+        return chooseActionGivenKnownHands(gameState, likeliestHands)
+
+    def getLikeliestHands(self, gameState):
+        likeliestHands = [None] * NUM_PLAYERS
+        for player in range(NUM_PLAYERS):
+            if player != self.agentIndex:
+                likeliestHands[player] = self.getLikeliestHandForPlayer(player, gameState)
+
+        likeliestHands[self.agentIndex] = gameState.hands[self.agentIndex]
+        return likeliestHands
+
+    def getLikeliestHandForPlayer(self, playerIndex, gameState):
+        playerBidHistory = filter(lambda bid: bid[3] == playerIndex, gameState.actionHistory) \
+            if isinstance(gameState, MedialGameState)\
+            else []
+        numDice = gameState.numDicePerPlayer[playerIndex]
+        return max((self.getLogJointProbabilityOfHandAndActions(hand, playerBidHistory, numDice), hand)
+                   for hand in self.getPossibleHands(numDice))[1]
+
+    def getPossibleHands(self, numDice):
+        return map(Counter, itertools.combinations_with_replacement(range(1, DICE_SIDES + 1), numDice))
+
+    def getPriorForHand(self, hand, numDice):
+        numerator = math.factorial(numDice) /\
+                    reduce(operator.mul, (math.factorial(v) for v in hand.itervalues()), 1)
+        denominator = DICE_SIDES ** numDice
+        return float(numerator) / denominator
+
+    def getLikelihoodOfActionForHand(self, hand, action):
+        verb, value, count, player, maxPreviousCount = action
+        countInHand = hand[value]
+        return self.localConditionalProbabilities[maxPreviousCount][countInHand][(verb, count)]
+
+    def getLogJointProbabilityOfHandAndActions(self, hand, actionHistory, numDice):
+        p = math.log(self.getPriorForHand(hand, numDice))
+        for bid in actionHistory:
+            likelihood = self.getLikelihoodOfActionForHand(hand, bid)
+            p += math.log(likelihood) if likelihood > 0 else NEG_INFINITY
+        return p
