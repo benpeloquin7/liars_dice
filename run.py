@@ -78,11 +78,11 @@ def simulateGames(numGames):
     # agentses.append([HonestProbabilisticAgent(0), HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)])
     # names.append('hhh')
 
-    pureQLearnAgent = PureQLearningAgent(0, featureExtractor1, 0.05, 0.3)
-    pureQLearnAgentOpponents = [HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)]
-    pureQLearnAgent.learn(2500, pureQLearnAgentOpponents)
-    agentses.append([pureQLearnAgent] + pureQLearnAgentOpponents)
-    names.append("qhh")
+    # pureQLearnAgent = PureQLearningAgent(0, featureExtractor1, 0.05, 0.3)
+    # pureQLearnAgentOpponents = [HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)]
+    # pureQLearnAgent.learn(2500, pureQLearnAgentOpponents)
+    # agentses.append([pureQLearnAgent] + pureQLearnAgentOpponents)
+    # names.append("qhh")
 
     # pureQLearnAgent = PureQLearningAgent(0, featureExtractor1, 0.05, 0.3)
     # pureQLearnAgentOpponents = [RandomAgent(1), RandomAgent(2)]
@@ -90,9 +90,19 @@ def simulateGames(numGames):
     # agentses.append([pureQLearnAgent] + pureQLearnAgentOpponents)
     # names.append("qrr")
 
-    weightsFile = open('weights', 'w')
-    printWeights(weightsFile, pureQLearnAgent.weights)
-    weightsFile.close()
+    bayesAgent = BayesianAgent()
+    bayesAgentOpponents = [HonestProbabilisticAgent(1), HonestProbabilisticAgent(2), HonestProbabilisticAgent(3)]
+    bayesAgent.learn(1, bayesAgentOpponents)
+
+    # weightsFile = open('weights', 'w')
+    # printWeights(weightsFile, pureQLearnAgent.weights)
+    # weightsFile.close()
+
+    probabilitiesFile = open('probabilities', 'w')
+    printProbabilities(probabilitiesFile, bayesAgent.localConditionalProbabilities)
+    probabilitiesFile.close()
+
+    return
     for i, agents in enumerate(agentses):
         name = names[i]
 
@@ -113,7 +123,17 @@ def printWeights(weightsFile, weights):
     for k, v in weights.iteritems():
         print >>weightsFile, str(k) + ' --> ' + str(v)
 
+def printProbabilities(file, probabilities):
+    for maxBidCount, nestedArray in probabilities.entries():
+        for handCount, counter in nestedArray.entries():
+            for action, prob in counter.iteritems():
+                print >>file, 'maxBidCount: %d, handCount: %d, verb: %s, actionCount: %d, probability: %f' % (
+                    maxBidCount, handCount, action[0], action[2], prob
+                )
+
 #playGame(True, 'data/gameData.txt')
 #print playGame(True, [HonestProbabilisticAgent(0), HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)])
-d = simulateGames(5000)
-print d
+
+# d = simulateGames(5000)
+# print d
+simulateGames(1)
