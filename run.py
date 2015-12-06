@@ -137,4 +137,4 @@ def printProbabilities(file, probabilities):
 
 # d = simulateGames(5000)
 # print d
-simulateGames(1)
+print simulateGames(100)
