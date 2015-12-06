@@ -7,6 +7,7 @@ import itertools
 import operator
 
 P = float(1)/DICE_SIDES
+NEG_INFINITY = float("-Infinity")
 
 class Agent:
     def chooseAction(self, gameState):
@@ -355,28 +356,30 @@ class BayesianAgent(Agent):
         return likeliestHands
 
     def getLikeliestHandForPlayer(self, playerIndex, gameState):
-        playerBidHistory = filter(lambda bid: bid[3] == playerIndex, gameState.actionHistory)
-        return max(self.getJointProbabilityOfHandAndActions(hand)
-                   for hand in self.getPossibleHands(playerIndex, gameState))
+        playerBidHistory = filter(lambda bid: bid[3] == playerIndex, gameState.actionHistory) \
+            if isinstance(gameState, MedialGameState)\
+            else []
+        numDice = gameState.numDicePerPlayer[playerIndex]
+        return max((self.getLogJointProbabilityOfHandAndActions(hand, playerBidHistory, numDice), hand)
+                   for hand in self.getPossibleHands(numDice))[1]
 
-    def getPossibleHands(self, playerIndex, gameState):
-        numDiceForThisPlayer = gameState.numDicePerPlayer[playerIndex]
-        return itertools.combinations_with_replacement(range(1, DICE_SIDES + 1), numDiceForThisPlayer)
+    def getPossibleHands(self, numDice):
+        return map(Counter, itertools.combinations_with_replacement(range(1, DICE_SIDES + 1), numDice))
 
-    def getPriorForHand(self, hand):
-        handCounter = Counter(hand)
-        numerator = math.factorial(len(hand)) /\
-                    reduce(operator.mul, (math.factorial(v) for v in handCounter.itervalues()), 1)
-        denominator = DICE_SIDES ** len(hand)
+    def getPriorForHand(self, hand, numDice):
+        numerator = math.factorial(numDice) /\
+                    reduce(operator.mul, (math.factorial(v) for v in hand.itervalues()), 1)
+        denominator = DICE_SIDES ** numDice
         return float(numerator) / denominator
 
     def getLikelihoodOfActionForHand(self, hand, action):
         verb, value, count, player, maxPreviousCount = action
-        countInHand = Counter(hand)[value]
+        countInHand = hand[value]
         return self.localConditionalProbabilities[maxPreviousCount][countInHand][(verb, count)]
 
-    def getLogJointProbabilityOfHandAndActions(self, hand, actionHistory):
-        p = math.log(self.getPriorForHand(hand))
+    def getLogJointProbabilityOfHandAndActions(self, hand, actionHistory, numDice):
+        p = math.log(self.getPriorForHand(hand, numDice))
         for bid in actionHistory:
-            p += math.log(self.getLikelihoodOfActionForHand(hand, bid))
+            likelihood = self.getLikelihoodOfActionForHand(hand, bid)
+            p += math.log(likelihood) if likelihood > 0 else NEG_INFINITY
         return p

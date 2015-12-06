@@ -90,9 +90,11 @@ def simulateGames(numGames):
     # agentses.append([pureQLearnAgent] + pureQLearnAgentOpponents)
     # names.append("qrr")
 
-    bayesAgent = BayesianAgent()
+    bayesAgent = BayesianAgent(0)
     bayesAgentOpponents = [HonestProbabilisticAgent(0), HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)]
     bayesAgent.learn(2500, bayesAgentOpponents)
+    agentses.append([bayesAgent, bayesAgentOpponents[1], bayesAgentOpponents[2]])
+    names.append("bhh")
 
     # weightsFile = open('weights', 'w')
     # printWeights(weightsFile, pureQLearnAgent.weights)
@@ -102,7 +104,6 @@ def simulateGames(numGames):
     printProbabilities(probabilitiesFile, bayesAgent.localConditionalProbabilities)
     probabilitiesFile.close()
 
-    return
     for i, agents in enumerate(agentses):
         name = names[i]
 
