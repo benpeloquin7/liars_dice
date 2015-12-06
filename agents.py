@@ -293,12 +293,12 @@ class BayesianAgent(Agent):
         # Matrix of probabilities given the number of relevant dice in the player's current
         # hand, and the max count of a previous bid for that die (which needs to go from 0 to
         # the total number of dice, inclusive)
-        self.localConditionalProbabilities = [[Counter() for _ in range(INITIAL_NUM_DICE_PER_PLAYER)]
+        self.localConditionalProbabilities = [[Counter() for _ in range(INITIAL_NUM_DICE_PER_PLAYER + 1)]
                                               for _ in range(INITIAL_NUM_DICE_PER_PLAYER * NUM_PLAYERS + 1)]
 
     def learn(self, numGames, trainingPlayers):
         assert len(trainingPlayers) == NUM_PLAYERS
-        maxCountsPerValueInPreviousBids = dict()
+        maxCountsPerValueInPreviousBids = Counter()
 
         for _ in range(numGames):
             state = self.initializeGame()
@@ -308,7 +308,8 @@ class BayesianAgent(Agent):
                 # An opponent chooses an action
                 currentPlayerIndex = state.getCurrentPlayerIndex()
                 currentPlayerHand = state.hands[currentPlayerIndex]
-                verb, value, count, _ = trainingPlayers[currentPlayerIndex].chooseAction(state)
+                action = trainingPlayers[currentPlayerIndex].chooseAction(state)
+                verb, value, count, _ = action
 
 
                 if isinstance(state, InitialGameState):
@@ -323,6 +324,7 @@ class BayesianAgent(Agent):
                 # Since the game requires that bids be strictly increasing,
                 # the current count is the max for this value
                 maxCountsPerValueInPreviousBids[value] = count
+                state = state.generateSuccessor(action)
 
         self.normalize()
 

@@ -91,8 +91,8 @@ def simulateGames(numGames):
     # names.append("qrr")
 
     bayesAgent = BayesianAgent()
-    bayesAgentOpponents = [HonestProbabilisticAgent(1), HonestProbabilisticAgent(2), HonestProbabilisticAgent(3)]
-    bayesAgent.learn(1, bayesAgentOpponents)
+    bayesAgentOpponents = [HonestProbabilisticAgent(0), HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)]
+    bayesAgent.learn(2500, bayesAgentOpponents)
 
     # weightsFile = open('weights', 'w')
     # printWeights(weightsFile, pureQLearnAgent.weights)
@@ -124,11 +124,11 @@ def printWeights(weightsFile, weights):
         print >>weightsFile, str(k) + ' --> ' + str(v)
 
 def printProbabilities(file, probabilities):
-    for maxBidCount, nestedArray in probabilities.entries():
-        for handCount, counter in nestedArray.entries():
-            for action, prob in counter.iteritems():
+    for maxBidCount, nestedArray in enumerate(probabilities):
+        for handCount, counter in enumerate(nestedArray):
+            for (verb, actionCount), prob in counter.iteritems():
                 print >>file, 'maxBidCount: %d, handCount: %d, verb: %s, actionCount: %d, probability: %f' % (
-                    maxBidCount, handCount, action[0], action[2], prob
+                    maxBidCount, handCount, verb, actionCount, prob
                 )
 
 #playGame(True, 'data/gameData.txt')
