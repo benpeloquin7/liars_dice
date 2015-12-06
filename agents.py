@@ -10,6 +10,9 @@ class Agent:
     def chooseAction(self, gameState):
         raise Exception('abstract')
 
+    def initializeGame(self):
+        return InitialGameState([INITIAL_NUM_DICE_PER_PLAYER] * NUM_PLAYERS, random.randint(0, NUM_PLAYERS - 1))
+
 class OracleAgent:
     def __init__(self, agentIndex):
         self.agentIndex = agentIndex
@@ -248,9 +251,6 @@ class PureQLearningAgent(Agent):
         else:
             return max((self.getQ(gameState, action), action) for action in gameState.getLegalActions())[1]
 
-    def initializeGame(self):
-        return InitialGameState([INITIAL_NUM_DICE_PER_PLAYER] * NUM_PLAYERS, random.randint(0, NUM_PLAYERS - 1))
-
     def getQ(self, state, action):
         score = 0
         for f, v in self.featureExtractor(state, action, self.agentIndex):
@@ -287,3 +287,49 @@ def featureExtractor1(state, action, agentIndex):
         features.append((('count-Minus-BidCount', (verb, count - bidCount)), 1)) # how much you raise the bid by
 
     return features
+
+class BayesianAgent(Agent):
+    def __init__(self):
+        # Matrix of probabilities given the number of relevant dice in the player's current
+        # hand, and the max count of a previous bid for that die (which needs to go from 0 to
+        # the total number of dice, inclusive)
+        self.localConditionalProbabilities = [[Counter() for _ in range(INITIAL_NUM_DICE_PER_PLAYER)]
+                                              for _ in range(INITIAL_NUM_DICE_PER_PLAYER * NUM_PLAYERS + 1)]
+
+    def learn(self, numGames, trainingPlayers):
+        assert len(trainingPlayers) == NUM_PLAYERS
+        maxCountsPerValueInPreviousBids = dict()
+
+        for _ in range(numGames):
+            state = self.initializeGame()
+            # Don't play, just watch the opponents play each other, and observe
+            # their behaviors given their hands
+            while not state.isGameOver():
+                # An opponent chooses an action
+                currentPlayerIndex = state.getCurrentPlayerIndex()
+                currentPlayerHand = state.hands[currentPlayerIndex]
+                verb, value, count, _ = trainingPlayers[currentPlayerIndex].chooseAction(state)
+
+
+                if isinstance(state, InitialGameState):
+                    maxCountsPerValueInPreviousBids.clear()
+
+                # Use maximum likelihood to track the probability that the player made that action,
+                # given their hand and the max count that particular value in the bid history
+                self.localConditionalProbabilities \
+                    [maxCountsPerValueInPreviousBids[value]] \
+                    [currentPlayerHand[value]][(verb, count)] += 1
+
+                # Since the game requires that bids be strictly increasing,
+                # the current count is the max for this value
+                maxCountsPerValueInPreviousBids[value] = count
+
+        self.normalize()
+
+    def normalize(self):
+        for row in self.localConditionalProbabilities:
+            for counter in row:
+                # Make it a float so that we will get well formed probabilities
+                denominator = float(sum(counter.itervalues()))
+                for key in counter.iterkeys():
+                    counter[key] /= denominator
