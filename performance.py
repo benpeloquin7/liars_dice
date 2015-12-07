@@ -60,6 +60,11 @@ def playerSet(allPlayers="qhh", featureExtractor=None, exploreProb=None, discoun
 			agentses.append(RandomAgent(i))
 		elif agent == "o":
 			agentses.append(OracleAgent(i))
+		elif agent == "b":
+			bayesAgent = BayesianAgent(i)
+			bayesAgentOpponents = [HonestProbabilisticAgent(0), HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)]
+			bayesAgent.learn(2500, bayesAgentOpponents)
+			agentses.append(bayesAgent)
 		else:
 			return "Error: " + agent + " is not a valid agent"
 
@@ -142,7 +147,8 @@ def tuneHyperParams(exploreProbRange=range(1, 10), \
 
 # Generic mean and variance (may need to calc var some other way?)
 # ----------------------------------------------------------------
-competitors = ["qrr", "qhh", "qoo", "hrr", "hoo", "ohh", "orr"]
+# competitors = ["qrr", "qhh", "qoo", "hrr", "hoo", "ohh", "orr"]
+competitors = ["qbh", "bqh", "qbo", "bqo"]
 means = []
 vars = []
 for c in competitors:
@@ -164,7 +170,7 @@ for c in competitors:
 # plt.show()
 
 # bar plots for win %
-n_groups = 7
+n_groups = len(competitors)
 bar_width = 0.4
 opacity = 0.4
 index = numpy.arange(n_groups)
