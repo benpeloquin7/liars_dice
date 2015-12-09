@@ -2,7 +2,7 @@ import random
 from collections import Counter
 
 NUM_PLAYERS = 3
-INITIAL_NUM_DICE_PER_PLAYER = 3
+INITIAL_NUM_DICE_PER_PLAYER = 5
 DICE_SIDES = 6
 SHOW_ALL_HANDS = True
 
@@ -48,12 +48,15 @@ class GameState:
         return gameStateString
 
 class InitialGameState(GameState):
-    def __init__(self, numDicePerPlayer, currentPlayerIndex):
+    def __init__(self, numDicePerPlayer, currentPlayerIndex, roundHistory, gameHistory):
         """
         Generates a new state by copying information from its predecessor.
         """
         self.hands = [Counter(random.randint(1,DICE_SIDES) for _ in range(numDice)) for numDice in numDicePerPlayer]
         self.bid = None
+        self.roundHistory= []
+        self.gameHistory = gameHistory
+        [self.gameHistory.append(act) for act in roundHistory]
         self.currentPlayerIndex = currentPlayerIndex
         self.numDicePerPlayer = numDicePerPlayer
         self.totalNumDice = sum(numDicePerPlayer)
@@ -75,7 +78,7 @@ class InitialGameState(GameState):
         verb, value, count, bidPlayer = action
         assert verb == 'bid'
 
-        return MedialGameState(self.numDicePerPlayer, self.hands, self.getNextPlayer(), action)
+        return MedialGameState(self.numDicePerPlayer, self.hands, self.getNextPlayer(), [], self.gameHistory, action)
 
     def isLose(self, playerIndex):
         return self.numDicePerPlayer[playerIndex] == 0
@@ -87,9 +90,12 @@ class InitialGameState(GameState):
         return self.getHandsString() + '\nNo current bid\n'
 
 class MedialGameState(GameState):
-    def  __init__(self, numDicePerPlayer, hands, currentPlayerIndex, bid):
+    def  __init__(self, numDicePerPlayer, hands, currentPlayerIndex, roundHistory, gameHistory, bid):
         self.hands = hands
         self.currentPlayerIndex = currentPlayerIndex
+        self.gameHistory = gameHistory
+        self.roundHistory = roundHistory
+        self.roundHistory.append(bid)
         self.bid = bid
         self.numDicePerPlayer = numDicePerPlayer
         self.totalNumDice = sum(numDicePerPlayer)
@@ -118,6 +124,8 @@ class MedialGameState(GameState):
             return MedialGameState(self.numDicePerPlayer,
                                    self.hands,
                                    self.getNextPlayer(),
+                                   self.roundHistory,
+                                   self.gameHistory,
                                    action)
         else:
             # Note:
@@ -151,7 +159,7 @@ class MedialGameState(GameState):
                     numDicePerPlayer[self.currentPlayerIndex] -= 1
                     nextPlayer = previousBidPlayerIndex
 
-            return InitialGameState(numDicePerPlayer, nextPlayer)
+            return InitialGameState(numDicePerPlayer, nextPlayer, self.roundHistory, self.gameHistory)
 
     def __str__(self):
         _, value, count, bidPlayer = self.bid

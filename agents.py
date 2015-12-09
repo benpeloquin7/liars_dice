@@ -3,6 +3,9 @@ import random
 import itertools
 import math
 import pdb
+import numpy as np
+
+import sklearn.decomposition as deco
 
 P = float(1)/DICE_SIDES
 
@@ -249,7 +252,7 @@ class PureQLearningAgent(Agent):
             return max((self.getQ(gameState, action), action) for action in gameState.getLegalActions())[1]
 
     def initializeGame(self):
-        return InitialGameState([INITIAL_NUM_DICE_PER_PLAYER] * NUM_PLAYERS, random.randint(0, NUM_PLAYERS - 1))
+        return InitialGameState([INITIAL_NUM_DICE_PER_PLAYER] * NUM_PLAYERS, random.randint(0, NUM_PLAYERS - 1), [], [])
 
     def getQ(self, state, action):
         score = 0
@@ -270,6 +273,7 @@ def featureExtractor1(state, action, agentIndex):
     handSize = numDicePerPlayer[agentIndex]
     totalNumDice = state.totalNumDice
     hand = state.hands[agentIndex]
+
     bid = state.bid
 
     # pure state features
@@ -287,3 +291,96 @@ def featureExtractor1(state, action, agentIndex):
         features.append((('count-Minus-BidCount', (verb, count - bidCount)), 1)) # how much you raise the bid by
 
     return features
+
+def featureExtractor2(state, action, agentIndex):
+    features = []
+    verb, value, count, _ = action
+    numDicePerPlayer = state.numDicePerPlayer
+    handSize = numDicePerPlayer[agentIndex]
+    totalNumDice = state.totalNumDice
+    hand = state.hands[agentIndex]
+
+    bid = state.bid
+    rh = state.roundHistory
+
+    # pure state features
+    features.append((('numDice', handSize), 1))
+    features.append((('numDiceDifference', totalNumDice - handSize), 1))
+
+    features.append((('totalDice-verb-count', (totalNumDice, verb, count)), 1)) # magnitude of action given number of dice
+    features.append((('handSize-verb-count', (handSize, verb, count)), 1)) # magnitude of action given our hand size
+    # features.append((('', (hand[value] > 0, verb)), 1)) # doing this verb given existence of corresponding value in your hand
+    features.append((('handValue-verb-count', (hand[value], verb, count)), 1)) # magnitude of action given how many in hand
+    features.append((('bidIsNone-verb-count', (bid is None, verb, count)), 1)) # magnitude of an initial state action
+
+    #if len(state.gameHistory) > 10:
+        #for i in range(1,3):
+            #if i != agentIndex:
+                #y= dimReduce(state.gameHistory, 1)
+                ##print(i)
+                ##print((('player%s_factor0'%i), np.sign(y[0][0])))
+                ##print((('player%s_factor1'%i), np.sign(y[1][0])))
+
+                #try:
+                    #features.append((('player%s_factor0'%i, np.sign(y[0][0])), 1))
+                #except:
+                    #pass
+
+                #try:
+                    #features.append((('player%s_factor1'%i, np.sign(y[1][0])), 1))
+                #except:
+                    #pass
+
+    for i, (ver, val, co, opp) in enumerate(reversed(rh)):
+        if opp != agentIndex:
+            features.append((('prevBidval%s'%i, val), 1))
+
+    if bid is not None:
+        _, bidValue, bidCount, _ = bid
+        features.append((('count-Minus-BidCount', (verb, count - bidCount)), 1)) # how much you raise the bid by
+
+    return features
+
+#def dimReduce(history, index):
+    #"""
+    #Method 1: USE ICA
+
+    #X <- columns different players, rows players output on "turn" i. #rows = #observations. (NumTurns x NumPlayers)
+    #S <-  columns different players, row a die possessed by player. (NumDice x NumPlayers)
+    #A <- mixing matrix, (NumTurns x NumDice)
+
+    #x_i = As_i <- A column (all a single player's actions throughout a round) is found by multiplying their hand
+    #with a "mixing matrix".
+
+    #Method 2: USE ICA
+
+    #Same as above, except use game knowledge to turn bid tuple into scalar value.
+    #Pros: Makes more sense because each row represents a timestep.
+    #Cons: Seems like it would compress information in a weird way.
+
+    #Method 3: USE FA
+
+
+    #Cons: Factors are uniformly distributed, not Gaussian. (But "noise" may be gaussian?)
+    #Latents may also have to be lower dimensional than observed. But maybe this can be achieved by turning bids into indicator vectors?
+    #"""
+    #H = np.asarray(history)[:,1:].astype('float')
+    #M= H[H[:,2].argsort()] #Sort by player index.
+    #v = M[:,2]
+    #X = M[:,0:2]
+
+    #L = []
+    #for (verb, val, count, player) in history:
+        #if player == index:
+            #L.append((val, count))
+
+    #X = np.asarray(L).astype('float')
+    ##fa = deco.FactorAnalysis(n_components= 1)
+    ##Y= fa.fit_transform(X.T)
+    #ica = deco.FastICA(n_components= 1)
+    #try:
+        #Y = ica.fit_transform(X.T)
+    #except: #Degenerate case?
+        #return
+
+    #return Y
