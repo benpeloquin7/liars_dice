@@ -18,8 +18,8 @@ Data
 ```{r}
 d = read.csv("generalPerformance.csv")
 d$game = as.character(d$game)
-str(d)
-d$agent = ifelse(grepl("^b", d$game), "Bayesian", "Q-learned")
+d$agent = ifelse(grepl("^b", d$game), "Bayesian",
+                 ifelse(grepl("^q", d$game), "Q-learned", "Honest"))
 d$opponents = ifelse(grepl("^.o", d$game), "oo", 
                      ifelse(grepl("^.h", d$game), "hh", "rr"))
 ```
@@ -27,8 +27,9 @@ d$opponents = ifelse(grepl("^.o", d$game), "oo",
 Plots
 ```{r}
 d.summary = summarySE(d, measurevar="wins", groupvars=c("game", "agent", "opponents"))
-ggplot(d.summary, aes(x=agent, y=wins)) +
+ggplot(d.summary, aes(x=agent, y=wins, fill=agent)) +
   geom_bar(position=position_dodge(), stat="identity") +
+  geom_hline(yintercept=33, col="red", lty=2) +
   geom_errorbar(aes(ymin=wins-ci, ymax=wins+ci),
                   width=.1,                    # Width of the error bars
                   position=position_dodge(.9)) +

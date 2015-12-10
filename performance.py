@@ -136,6 +136,7 @@ def tuneHyperParams(exploreProbRange=range(1, 10), \
 		print "Tuning exploreProb and discount..."
 
 	paramData = []
+	featureExtractors = [featureExtractor1,featureExtractor1,featureExtractor1]
 	for epsilon in exploreProbRange:
 		for gamma in discountRange:
 			epsilonReal = float(epsilon) / 100
@@ -143,7 +144,7 @@ def tuneHyperParams(exploreProbRange=range(1, 10), \
 			if verbose:
 				print("Tuning q with epsilon=" + str(epsilonReal) + " and gamma=" + str(gammaReal) + " for numIters=" + str(numIters) + "...")
 			# Get competitor set
-			players = playerSet("qhh", featureExtractor, exploreProb=epsilonReal, discount=gammaReal, numIters = numIters)
+			players = playerSet(allPlayers, featureExtractors, exploreProb=epsilonReal, discount=gammaReal, numIters=numIters)
 			# Collect data - numberOfSamples (batch size) = 1 to speed things up
 			paramData.append((calcMean(extractScores(collectData(allPlayers=players, sampleSize=100, numberOfSamples=1))), epsilonReal, gammaReal))
 	return paramData
@@ -164,18 +165,23 @@ def tuneHyperParams(exploreProbRange=range(1, 10), \
 
 # General performance data
 # ------------------------
-games= ['qrr' ,'qhh', 'qoo']
+games= ['hrr', 'hhh', 'hoo', 'qrr', 'qhh', 'qoo', 'brr', 'bhh', 'boo']
 data = []
 for game in games:
-	comps = playerSet(game, [featureExtractor1,featureExtractor1,featureExtractor1], exploreProb=0.05, discount=0.3, numIters=2500)
-	data.extend(collectData(allPlayers=comps, sampleSize=30, numberOfSamples=30))
+	comps = playerSet(game, [featureExtractor1,featureExtractor1,featureExtractor1], exploreProb=0.03, discount=0.9, numIters=2500)
+	data.extend(collectData(allPlayers=comps, sampleSize=100, numberOfSamples=30))
+#
+# print data
 
 # Output to .csv
-with open('generalPerformance.csv','w') as out:
-    csv_out = csv.writer(out)
-    csv_out.writerow(['game','wins'])
-    for row in data:
-        csv_out.writerow(row)
+# --------------
+write_to_csv = True
+if write_to_csv:
+	with open('generalPerformance.csv','w') as out:
+		csv_out = csv.writer(out)
+		csv_out.writerow(['game','wins'])
+		for row in data:
+			csv_out.writerow(row)
 
 
 
@@ -200,5 +206,5 @@ if plot:
 
 # Tune hyperparameters
 # ---------------------
-# params =  tuneHyperParams(exploreProbRange=range(1, 11), discountRange=range(0, 11))
+# params =  tuneHyperParams(exploreProbRange=range(1, 11), discountRange=range(0, 11), numIters=1000)
 # print params
