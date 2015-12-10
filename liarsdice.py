@@ -48,15 +48,12 @@ class GameState:
         return gameStateString
 
 class InitialGameState(GameState):
-    def __init__(self, numDicePerPlayer, currentPlayerIndex, roundHistory, gameHistory):
+    def __init__(self, numDicePerPlayer, currentPlayerIndex):
         """
         Generates a new state by copying information from its predecessor.
         """
         self.hands = [Counter(random.randint(1,DICE_SIDES) for _ in range(numDice)) for numDice in numDicePerPlayer]
         self.bid = None
-        self.roundHistory= []
-        self.gameHistory = gameHistory
-        [self.gameHistory.append(act) for act in roundHistory]
         self.currentPlayerIndex = currentPlayerIndex
         self.numDicePerPlayer = numDicePerPlayer
         self.totalNumDice = sum(numDicePerPlayer)
@@ -78,7 +75,8 @@ class InitialGameState(GameState):
         verb, value, count, bidPlayer = action
         assert verb == 'bid'
 
-        return MedialGameState(self.numDicePerPlayer, self.hands, self.getNextPlayer(), [], self.gameHistory, action)
+        newActionHistory = [(verb, value, count, bidPlayer, 0)]
+        return MedialGameState(self.numDicePerPlayer, self.hands, self.getNextPlayer(), action, newActionHistory)
 
     def isLose(self, playerIndex):
         return self.numDicePerPlayer[playerIndex] == 0
@@ -90,15 +88,13 @@ class InitialGameState(GameState):
         return self.getHandsString() + '\nNo current bid\n'
 
 class MedialGameState(GameState):
-    def  __init__(self, numDicePerPlayer, hands, currentPlayerIndex, roundHistory, gameHistory, bid):
+    def  __init__(self, numDicePerPlayer, hands, currentPlayerIndex, bid, actionHistory):
         self.hands = hands
         self.currentPlayerIndex = currentPlayerIndex
-        self.gameHistory = gameHistory
-        self.roundHistory = roundHistory
-        self.roundHistory.append(bid)
         self.bid = bid
         self.numDicePerPlayer = numDicePerPlayer
         self.totalNumDice = sum(numDicePerPlayer)
+        self.actionHistory = actionHistory
 
     def getLegalActions(self):
         """
@@ -120,13 +116,14 @@ class MedialGameState(GameState):
         """
         verb, value, bidCount, previousBidPlayerIndex = action
         if verb == 'bid':
-
+            maxBidOfCurrentValue = max(bidCount if curValue == value else 0
+                                       for _, curValue, bidCount, _, _ in self.actionHistory)
+            newActionHistory = self.actionHistory + [(verb, value, bidCount, previousBidPlayerIndex, maxBidOfCurrentValue)]
             return MedialGameState(self.numDicePerPlayer,
                                    self.hands,
                                    self.getNextPlayer(),
-                                   self.roundHistory,
-                                   self.gameHistory,
-                                   action)
+                                   action,
+                                   newActionHistory)
         else:
             # Note:
             # -----
@@ -159,7 +156,7 @@ class MedialGameState(GameState):
                     numDicePerPlayer[self.currentPlayerIndex] -= 1
                     nextPlayer = previousBidPlayerIndex
 
-            return InitialGameState(numDicePerPlayer, nextPlayer, self.roundHistory, self.gameHistory)
+            return InitialGameState(numDicePerPlayer, nextPlayer)
 
     def __str__(self):
         _, value, count, bidPlayer = self.bid
