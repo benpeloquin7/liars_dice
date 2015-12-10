@@ -5,6 +5,7 @@ from scipy import stats
 import collections
 from liarsdice import *
 from agents import *
+import csv
 
 
 def simulateGame(allPlayers=None):
@@ -37,12 +38,12 @@ def simulateNGames(numGames=30, allPlayers=None, verbose=False):
 			print i
 		gameData.append(simulateGame(playerObjects))
 
-	return (playerStr, float(sum(gameData)) / numGames)
+	return (playerStr,sum(gameData))
 
-def playerSet(allPlayers="qhh", featureExtractors=None, exploreProb=None, discount=None, numIters = 100):
+def playerSet(allPlayers="qhh", featureExtractors=None, exploreProb=None, discount=None, numIters=100):
 	"""
 	:param allPlayers:         	Player set string acronym
-	:param featureExtractor:    Q-learning feature set
+	:param featureExtractors:   List of Q-learning feature set
 	:param exploreProb:         Q-learning gamma
 	:param discount:            Q-learning discount
 	:param numIters:            Q-learning training iterations
@@ -72,10 +73,9 @@ def playerSet(allPlayers="qhh", featureExtractors=None, exploreProb=None, discou
 	for i, agent in enumerate(agentses):
 		if isinstance(agent, PureQLearningAgent):
 			opponents = agentses[:i]+agentses[i+1:]
-			#agent.learn(numIters, opponents)
-
-			agent.learn(numIters, [OracleAgent(opponents[0].agentIndex),
-			            OracleAgent(opponents[1].agentIndex)])
+			agent.learn(numIters, opponents)
+			# agent.learn(numIters, [OracleAgent(opponents[0].agentIndex),
+			#             OracleAgent(opponents[1].agentIndex)])
 
 	return (allPlayers, agentses)
 
@@ -161,20 +161,22 @@ def tuneHyperParams(exploreProbRange=range(1, 10), \
 	#data = collectData(allPlayers = comps, sampleSize=30, numberOfSamples=100)
 # competitors = ["qrr", "qhh", "qoo", "hrr", "hoo", "ohh", "orr"]
 #competitors = ["qbh", "bqh", "qbo", "bqo"]
-competitors= ['qhh']
-means = []
-vars = []
-for c in competitors:
-	comps = playerSet(c, [featureExtractor2,featureExtractor1,featureExtractor1], exploreProb=0.05, discount=0.3, numIters=2500)
-	data = collectData(allPlayers = comps, sampleSize=30, numberOfSamples=100)
-	scores = extractScores(data)
-	mu = calcMean(scores)
-	means.append(mu)
-	var = calcVariance(scores)
-	vars.append(var)
-	print "-------------------"
-	print c
-	print("average win %: " + str(mu) + " variance: " + str(var))
+
+# General performance data
+# ------------------------
+games= ['qrr' ,'qhh', 'qoo']
+data = []
+for game in games:
+	comps = playerSet(game, [featureExtractor1,featureExtractor1,featureExtractor1], exploreProb=0.05, discount=0.3, numIters=2500)
+	data.extend(collectData(allPlayers=comps, sampleSize=30, numberOfSamples=30))
+
+# Output to .csv
+with open('generalPerformance.csv','w') as out:
+    csv_out = csv.writer(out)
+    csv_out.writerow(['game','wins'])
+    for row in data:
+        csv_out.writerow(row)
+
 
 
 # Plotting
@@ -183,16 +185,18 @@ for c in competitors:
 # plt.show()
 
 # bar plots for win %
-n_groups = len(competitors)
-bar_width = 0.4
-opacity = 0.4
-index = numpy.arange(n_groups)
-rects1 = plt.bar(index, means, bar_width, \
-				 alpha=opacity, \
-				 color='b', \
-				 yerr=vars)
-plt.xticks(index + bar_width, competitors)
-plt.show()
+plot = False
+if plot:
+	n_groups = len(games)
+	bar_width = 0.4
+	opacity = 0.4
+	index = numpy.arange(n_groups)
+	rects1 = plt.bar(index, means, bar_width, \
+					 alpha=opacity, \
+					 color='b', \
+					 yerr=vars)
+	plt.xticks(index + bar_width, competitors)
+	plt.show()
 
 # Tune hyperparameters
 # ---------------------
