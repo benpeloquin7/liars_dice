@@ -1,0 +1,66 @@
+---
+title: "liarsDicePerformance"
+author: "BPeloquin"
+date: "November 11, 2015"
+output: html_document
+---
+
+```{r}
+rm(list = ls())
+library(jsonlite)
+library(Rmisc)
+library(ggplot2)
+library(dplyr)
+setwd("/Users/benpeloquin/Desktop/Autumn_2015/CS221/liars_dice/")
+```
+
+Data
+```{r}
+d = read.csv("generalPerformance.csv")
+d$game = as.character(d$game)
+str(d)
+d$agent = ifelse(grepl("^b", d$game), "Bayesian", "Q-learned")
+d$opponents = ifelse(grepl("^.o", d$game), "oo", 
+                     ifelse(grepl("^.h", d$game), "hh", "rr"))
+```
+
+Plots
+```{r}
+d.summary = summarySE(d, measurevar="wins", groupvars=c("game", "agent", "opponents"))
+ggplot(d.summary, aes(x=agent, y=wins)) +
+  geom_bar(position=position_dodge(), stat="identity") +
+  geom_errorbar(aes(ymin=wins-ci, ymax=wins+ci),
+                  width=.1,                    # Width of the error bars
+                  position=position_dodge(.9)) +
+  facet_wrap(~opponents) +
+  xlab("Game") +
+  ylab("Wins out of 100") +
+  ggtitle("Game results")
+```
+
+Fake data
+```{r}
+# fake data
+# ----------
+n = 100
+wins = floor(rnorm(n, mean=50, sd=10))
+type = rep("qoo", 100)
+d = data.frame(scores=wins, type=type)
+wins = floor(rnorm(n, mean=70, sd=10))
+type = rep("qhh", 100)
+d = rbind(d, data.frame(scores=wins, type=type))
+wins = floor(rnorm(n, mean=40, sd=12))
+type = rep("qrr", 100)
+d = rbind(d, data.frame(scores=wins, type=type))
+
+wins = floor(rnorm(n, mean=50, sd=10))
+type = rep("boo", 100)
+d = rbind(d, data.frame(scores=wins, type=type))
+wins = floor(rnorm(n, mean=70, sd=10))
+type = rep("bhh", 100)
+d = rbind(d, data.frame(scores=wins, type=type))
+wins = floor(rnorm(n, mean=40, sd=12))
+type = rep("brr", 100)
+d = rbind(d, data.frame(scores=wins, type=type))
+```
+
