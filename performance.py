@@ -16,6 +16,7 @@ def simulateGame(allPlayers=None):
 	if allPlayers is None:
 		allPlayers = [HumanAgent(i) for i in range(NUM_PLAYERS)]
 
+	numPlayers = len(allPlayers)
 	gameState = InitialGameState([INITIAL_NUM_DICE_PER_PLAYER] * NUM_PLAYERS, random.randint(0, NUM_PLAYERS - 1))
 	while not gameState.isGameOver():
 		agent = allPlayers[gameState.getCurrentPlayerIndex()]
@@ -38,7 +39,7 @@ def simulateNGames(numGames=30, allPlayers=None, verbose=False):
 			print i
 		gameData.append(simulateGame(playerObjects))
 
-	return (playerStr,sum(gameData))
+	return (playerStr, sum(gameData))
 
 def playerSet(allPlayers="qhh", featureExtractors=None, exploreProb=None, discount=None, numIters=100):
 	"""
@@ -63,8 +64,6 @@ def playerSet(allPlayers="qhh", featureExtractors=None, exploreProb=None, discou
 			agentses.append(OracleAgent(i))
 		elif agent == "b":
 			bayesAgent = BayesianAgent(i)
-			bayesAgentOpponents = [HonestProbabilisticAgent(0), HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)]
-			bayesAgent.learn(2500, bayesAgentOpponents)
 			agentses.append(bayesAgent)
 		else:
 			return "Error: " + agent + " is not a valid agent"
@@ -74,6 +73,18 @@ def playerSet(allPlayers="qhh", featureExtractors=None, exploreProb=None, discou
 		if isinstance(agent, PureQLearningAgent):
 			opponents = agentses[:i]+agentses[i+1:]
 			agent.learn(numIters, opponents)
+		if isinstance(agent, BayesianAgent):
+			opponents = agentses[:i]+agentses[i+1:]
+			# Bayesian agent observes 3 agents - add appropriate third agent for learning
+			if isinstance(opponents[0], RandomAgent):
+				opponents.append(RandomAgent(2))
+			elif isinstance(opponents[0], HonestProbabilisticAgent):
+				opponents.append(HonestProbabilisticAgent(2))
+			elif isinstance(opponents[0], OracleAgent):
+				opponents.append(OracleAgent(2))
+
+			agent.learn(numIters, opponents)
+
 			# agent.learn(numIters, [OracleAgent(opponents[0].agentIndex),
 			#             OracleAgent(opponents[1].agentIndex)])
 
@@ -165,7 +176,8 @@ def tuneHyperParams(exploreProbRange=range(1, 10), \
 
 # General performance data
 # ------------------------
-games= ['hrr', 'hhh', 'hoo', 'qrr', 'qhh', 'qoo', 'brr', 'bhh', 'boo']
+# games= ['hrr', 'hhh', 'hoo', 'qrr', 'qhh', 'qoo', 'brr', 'bhh', 'boo']
+games = ["brr", "bhh", "boo"]
 data = []
 for game in games:
 	comps = playerSet(game, [featureExtractor1,featureExtractor1,featureExtractor1], exploreProb=0.03, discount=0.9, numIters=2500)
