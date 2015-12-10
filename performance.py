@@ -15,7 +15,7 @@ def simulateGame(allPlayers=None):
 	if allPlayers is None:
 		allPlayers = [HumanAgent(i) for i in range(NUM_PLAYERS)]
 
-	gameState = InitialGameState([INITIAL_NUM_DICE_PER_PLAYER] * NUM_PLAYERS, random.randint(0, NUM_PLAYERS - 1), [], [])
+	gameState = InitialGameState([INITIAL_NUM_DICE_PER_PLAYER] * NUM_PLAYERS, random.randint(0, NUM_PLAYERS - 1))
 	while not gameState.isGameOver():
 		agent = allPlayers[gameState.getCurrentPlayerIndex()]
 		chosenAction = agent.chooseAction(gameState)
@@ -39,7 +39,7 @@ def simulateNGames(numGames=30, allPlayers=None, verbose=False):
 
 	return (playerStr, float(sum(gameData)) / numGames)
 
-def playerSet(allPlayers="qhh", featureExtractor=None, exploreProb=None, discount=None, numIters = 2500):
+def playerSet(allPlayers="qhh", featureExtractors=None, exploreProb=None, discount=None, numIters = 100):
 	"""
 	:param allPlayers:         	Player set string acronym
 	:param featureExtractor:    Q-learning feature set
@@ -153,18 +153,19 @@ def tuneHyperParams(exploreProbRange=range(1, 10), \
 
 #competitors = ["qrr", "qhh", "qoo", "hrr", "hoo", "ohh", "orr"]
 #competitors = ["qhh"]
-competitors = ["qhh"]
-means = []
-vars = []
-for c in competitors:
-	comps = competitorSet(c, [featureExtractor2,featureExtractor1,featureExtractor1], exploreProb=0.05, discount=0.3, numIters=2500)
-	data = collectData(competitors = comps, sampleSize=30, numberOfSamples=100)
+#competitors = ["qhh"]
+#means = []
+#vars = []
+#for c in competitors:
+	#comps = playerSet(c, [featureExtractor2,featureExtractor1,featureExtractor1], exploreProb=0.05, discount=0.3, numIters=2500)
+	#data = collectData(allPlayers = comps, sampleSize=30, numberOfSamples=100)
 # competitors = ["qrr", "qhh", "qoo", "hrr", "hoo", "ohh", "orr"]
-competitors = ["qbh", "bqh", "qbo", "bqo"]
+#competitors = ["qbh", "bqh", "qbo", "bqo"]
+competitors= ['qhh']
 means = []
 vars = []
 for c in competitors:
-	comps = playerSet(c, featureExtractor1, exploreProb=0.05, discount=0.3, numIters=2500)
+	comps = playerSet(c, [featureExtractor2,featureExtractor1,featureExtractor1], exploreProb=0.05, discount=0.3, numIters=2500)
 	data = collectData(allPlayers = comps, sampleSize=30, numberOfSamples=100)
 	scores = extractScores(data)
 	mu = calcMean(scores)

@@ -260,7 +260,7 @@ class PureQLearningAgent(Agent):
             return max((self.getQ(gameState, action), action) for action in gameState.getLegalActions())[1]
 
     def initializeGame(self):
-        return InitialGameState([INITIAL_NUM_DICE_PER_PLAYER] * NUM_PLAYERS, random.randint(0, NUM_PLAYERS - 1), [], [])
+        return InitialGameState([INITIAL_NUM_DICE_PER_PLAYER] * NUM_PLAYERS, random.randint(0, NUM_PLAYERS - 1))
 
     def getQ(self, state, action):
         score = 0
@@ -309,7 +309,11 @@ def featureExtractor2(state, action, agentIndex):
     hand = state.hands[agentIndex]
 
     bid = state.bid
-    rh = state.roundHistory
+    if isinstance(state, MedialGameState):
+        rh = state.actionHistory
+        for i, (ver, val, co, opp, _) in enumerate(reversed(rh)):
+            if opp != agentIndex:
+                features.append((('prevBidval%s'%i, val), 1))
 
     # pure state features
     features.append((('numDice', handSize), 1))
@@ -339,9 +343,6 @@ def featureExtractor2(state, action, agentIndex):
                 #except:
                     #pass
 
-    for i, (ver, val, co, opp) in enumerate(reversed(rh)):
-        if opp != agentIndex:
-            features.append((('prevBidval%s'%i, val), 1))
 
     if bid is not None:
         _, bidValue, bidCount, _ = bid
