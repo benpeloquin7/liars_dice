@@ -20,7 +20,7 @@ def testIG_InitalGameStateAttributes():
 		currPlayerIndex = random.randint(1, numPlayers)
 		igs = InitialGameState(numDicePerPlayer, currPlayerIndex)
 		# print("igs.numDicePerPlayer: ", igs.numDicePerPlayer)
-		# print("igs.bid: ", igs.bid)
+		# print("igs.bid: ", igs.bid) 
 		# print("igs.currentPlayerIndex: ", igs.currentPlayerIndex)
 		# print("igs.numDicePerPlayer: ", igs.numDicePerPlayer)
 		assert len(igs.numDicePerPlayer) == numPlayers
@@ -31,7 +31,7 @@ def testIG_InitalGameStateAttributes():
 
 def testIG_getLegalActions():
 	"""
-	tests InitialGameState.getLegalACtions()
+	tests InitialGameState.getLegalACtions() 
 	Note: actionTuple contians ('verb', value, count, curr_player_index)
 	"""
 	igs = InitialGameState(numDicePerPlayer, currPlayerIndex)
@@ -145,7 +145,7 @@ def testMG_getLegalActions():
 	assert [action[2] > mgs.bid[2] for action in mgs.getLegalActions() if action[0] == "bid"]
 	print("pass --> MedialGameState.getLegalActions()")
 
-
+	
 def testMG_generateSuccessor():
 	"""
 	test MedialGameState.generateSuccesor()
@@ -154,9 +154,9 @@ def testMG_generateSuccessor():
 	hands = [Counter(random.randint(1,DICE_SIDES)\
 				for _ in range(numDice))\
 					for numDice in numDicePerPlayer]
-
+	
 	mgs = MedialGameState(numDicePerPlayer, hands, \
-							currPlayerIndex, [], ("bid", 2, 3, 1))
+							currPlayerIndex, ("bid", 2, 3, 1))
 	print "mgs.currentPlayerIndex:", mgs.currentPlayerIndex
 	print "mgs.hands\n", mgs.hands
 	print "mgs bid (\"bid\", 3, 3, 2)"

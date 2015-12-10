@@ -2,7 +2,7 @@ import random
 from collections import Counter
 
 NUM_PLAYERS = 3
-INITIAL_NUM_DICE_PER_PLAYER = 5
+INITIAL_NUM_DICE_PER_PLAYER = 3
 DICE_SIDES = 6
 SHOW_ALL_HANDS = True
 
