@@ -43,6 +43,7 @@ def simulateNGames(numGames=30, allPlayers=None, verbose=False):
 
 def playerSet(allPlayers="qhh", featureExtractors=None, exploreProb=None, discount=None, numIters=100):
 	"""
+	:rtype: object
 	:param allPlayers:         	Player set string acronym
 	:param featureExtractors:   List of Q-learning feature set
 	:param exploreProb:         Q-learning gamma
@@ -50,11 +51,31 @@ def playerSet(allPlayers="qhh", featureExtractors=None, exploreProb=None, discou
 	:param numIters:            Q-learning training iterations
 	:return:                    Competitor set string and agent objects
 	"""
+	# Tuned exploreProb and discount
+	# index [0] is first pair we tried
+	# index [1] is tuning for feature extractor 1
+	# index [2] is tuning for feature extractor 2
+	tunedExploreProb = [0.03, 0.05, 0.08]
+	tunedDiscount = [0.5, 0.5, 0.8]
+
+	# Check for feature type in players string
+	if "_" in allPlayers:
+		extractorNum = int(allPlayers.split("_")[1])
+	else:
+		extractorNum = int(allPlayers.split("_")[1])
+
 	# Populate player set
 	agentses = []
 	for i, agent in enumerate(allPlayers.lower()):
 		if agent == "q":
-			pureQLearnAgent = PureQLearningAgent(i, featureExtractors[i], exploreProb, discount)
+			# If exploreProb and discount are passed in (probably bc we're tuning)
+			if exploreProb != None and discount != None:
+				pureQLearnAgent = PureQLearningAgent(i, featureExtractors[extractorNum],\
+												 exploreProb, discount)
+			else:
+				# Else used tuned params
+				pureQLearnAgent = PureQLearningAgent(i, featureExtractors[extractorNum],\
+													 tunedExploreProb[extractorNum], tunedDiscount[extractorNum])
 			agentses.append(pureQLearnAgent)
 		elif agent == "h":
 			agentses.append(HonestProbabilisticAgent(i))
@@ -65,14 +86,16 @@ def playerSet(allPlayers="qhh", featureExtractors=None, exploreProb=None, discou
 		elif agent == "b":
 			bayesAgent = BayesianAgent(i)
 			agentses.append(bayesAgent)
-		else:
-			return "Error: " + agent + " is not a valid agent"
+		# else:
+		# 	return "Error: " + agent + " is not a valid agent"
 
-	# Train Q-learned agents (potentially multiple - this needs to be built out)
+	# Learn with correct opponent sets
 	for i, agent in enumerate(agentses):
+		# Q-learned training
 		if isinstance(agent, PureQLearningAgent):
 			opponents = agentses[:i]+agentses[i+1:]
 			agent.learn(numIters, opponents)
+		# Bayesian training
 		if isinstance(agent, BayesianAgent):
 			opponents = agentses[:i]+agentses[i+1:]
 			# Bayesian agent observes 3 agents - add appropriate third agent for learning
@@ -130,24 +153,22 @@ def tuneHyperParams(exploreProbRange=range(1, 10), \
 					discountRange=range(0, 11), \
 					allPlayers="qhh", \
 					numIters=100, \
-					featureExtractor = featureExtractor1, \
+					extractorNum = 1, \
 					verbose=True):
 	"""
 
-	:param exploreProbRange: 	epsilon range (will be divided by 100)
-	:param discountRange:  		gamma range (will be divided by 10)
-	:param competitorStr: 		specify competitors
-	:param numIters: 			number of Q-learning iterations
-	:param featureExtractor: 	feature extractor we're exploring
-	:param verbose: 			print stuff
-	:return: 					list of tuples [(win%, epsilon, gamma)...]
+	:param exploreProbRange: 		epsilon range (will be divided by 100)
+	:param discountRange:  			gamma range (will be divided by 10)
+	:param competitorStr: 			specify competitors
+	:param numIters: 				number of Q-learning iterations
+	:param featureExtractorIndex: 	feature extractor to use (1 or 2)
+	:param verbose: 				print stuff
+	:return: 						list of tuples [(win%, epsilon, gamma)...]
 	"""
-
 	if verbose:
 		print "Tuning exploreProb and discount..."
-
+	featureExtractors = [featureExtractor1, featureExtractor2]
 	paramData = []
-	featureExtractors = [featureExtractor1,featureExtractor1,featureExtractor1]
 	for epsilon in exploreProbRange:
 		for gamma in discountRange:
 			epsilonReal = float(epsilon) / 100
@@ -155,7 +176,7 @@ def tuneHyperParams(exploreProbRange=range(1, 10), \
 			if verbose:
 				print("Tuning q with epsilon=" + str(epsilonReal) + " and gamma=" + str(gammaReal) + " for numIters=" + str(numIters) + "...")
 			# Get competitor set
-			players = playerSet(allPlayers, featureExtractors, exploreProb=epsilonReal, discount=gammaReal, numIters=numIters)
+			players = playerSet(allPlayers, featureExtractors=featureExtractors, exploreProb=epsilonReal, discount=gammaReal, numIters=numIters)
 			# Collect data - numberOfSamples (batch size) = 1 to speed things up
 			paramData.append((calcMean(extractScores(collectData(allPlayers=players, sampleSize=100, numberOfSamples=1))), epsilonReal, gammaReal))
 	return paramData
@@ -177,11 +198,16 @@ def tuneHyperParams(exploreProbRange=range(1, 10), \
 # General performance data
 # ------------------------
 # games= ['hrr', 'hhh', 'hoo', 'qrr', 'qhh', 'qoo', 'brr', 'bhh', 'boo']
-games = ["brr", "bhh", "boo"]
-data = []
-for game in games:
-	comps = playerSet(game, [featureExtractor1,featureExtractor1,featureExtractor1], exploreProb=0.03, discount=0.9, numIters=2500)
-	data.extend(collectData(allPlayers=comps, sampleSize=100, numberOfSamples=30))
+# games = ["brr", "bhh", "boo"]
+runGeneralPerformance = True
+if runGeneralPerformance:
+	games = ["qrr_1", "qhh_1", "qoo_1", "qrr_2", "qhh_2", "qoo_2", "brr", "bhh", "boo"]
+	featureExtractors = [featureExtractor1, featureExtractor2]
+	data = []
+	for i, game in enumerate(games):
+		print "game #" + str(i + 1) + " out of " + str(len(games))
+		allPlayers = playerSet(game, featureExtractors=featureExtractors, exploreProb=None, discount=None, numIters=2500)
+		data.extend(collectData(allPlayers=allPlayers, sampleSize=100, numberOfSamples=100))
 #
 # print data
 
@@ -218,5 +244,8 @@ if plot:
 
 # Tune hyperparameters
 # ---------------------
-# params =  tuneHyperParams(exploreProbRange=range(1, 11), discountRange=range(0, 11), numIters=1000)
-# print params
+shouldTune = False
+if shouldTune:
+	params =  tuneHyperParams(allPlayers="qhh_2", exploreProbRange=range(1, 11), discountRange=range(0, 11), numIters=1000)
+	print params
+	print max(params)
