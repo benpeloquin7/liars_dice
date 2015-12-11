@@ -199,7 +199,7 @@ if runGeneralPerformance:
 				csv_out.writerow(row)
 
 
-# Specific tests
+# Specific tests - Q-learners
 # Q1 trained on Oracle vs Q2 trained on oracle
 # Note: Need to set NUM_Players = 2 in in liarsdice.py !!!!
 # ---------------------------------------------------------
