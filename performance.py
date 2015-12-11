@@ -16,7 +16,6 @@ def simulateGame(allPlayers=None):
 	if allPlayers is None:
 		allPlayers = [HumanAgent(i) for i in range(NUM_PLAYERS)]
 
-	numPlayers = len(allPlayers)
 	gameState = InitialGameState([INITIAL_NUM_DICE_PER_PLAYER] * NUM_PLAYERS, random.randint(0, NUM_PLAYERS - 1))
 	while not gameState.isGameOver():
 		agent = allPlayers[gameState.getCurrentPlayerIndex()]
@@ -52,17 +51,14 @@ def playerSet(allPlayers="qhh", featureExtractors=None, exploreProb=None, discou
 	:return:                    Competitor set string and agent objects
 	"""
 	# Tuned exploreProb and discount
-	# index [0] is first pair we tried
-	# index [1] is tuning for feature extractor 1
-	# index [2] is tuning for feature extractor 2
-	tunedExploreProb = [0.03, 0.05, 0.08]
-	tunedDiscount = [0.5, 0.5, 0.8]
+	# index [0] is tuning for feature extractor 1 (exploreProb=0.05, discount=0.5)
+	# index [1] is tuning for feature extractor 2 (exploreProb=0.08, discount=0.8)
+	tunedExploreProb = [0.05, 0.08]
+	tunedDiscount = [0.5, 0.8]
 
 	# Check for feature type in players string
 	if "_" in allPlayers:
-		extractorNum = int(allPlayers.split("_")[1])
-	else:
-		extractorNum = int(allPlayers.split("_")[1])
+		extractorNum = int(allPlayers.split("_")[1]) - 1
 
 	# Populate player set
 	agentses = []
@@ -181,25 +177,12 @@ def tuneHyperParams(exploreProbRange=range(1, 10), \
 			paramData.append((calcMean(extractScores(collectData(allPlayers=players, sampleSize=100, numberOfSamples=1))), epsilonReal, gammaReal))
 	return paramData
 
-# Generic mean and variance (may need to calc var some other way?)
-# ----------------------------------------------------------------
-
-#competitors = ["qrr", "qhh", "qoo", "hrr", "hoo", "ohh", "orr"]
-#competitors = ["qhh"]
-#competitors = ["qhh"]
-#means = []
-#vars = []
-#for c in competitors:
-	#comps = playerSet(c, [featureExtractor2,featureExtractor1,featureExtractor1], exploreProb=0.05, discount=0.3, numIters=2500)
-	#data = collectData(allPlayers = comps, sampleSize=30, numberOfSamples=100)
-# competitors = ["qrr", "qhh", "qoo", "hrr", "hoo", "ohh", "orr"]
-#competitors = ["qbh", "bqh", "qbo", "bqo"]
 
 # General performance data
 # ------------------------
 # games= ['hrr', 'hhh', 'hoo', 'qrr', 'qhh', 'qoo', 'brr', 'bhh', 'boo']
 # games = ["brr", "bhh", "boo"]
-runGeneralPerformance = True
+runGeneralPerformance = False
 if runGeneralPerformance:
 	games = ["qrr_1", "qhh_1", "qoo_1", "qrr_2", "qhh_2", "qoo_2", "brr", "bhh", "boo"]
 	featureExtractors = [featureExtractor1, featureExtractor2]
@@ -208,18 +191,55 @@ if runGeneralPerformance:
 		print "game #" + str(i + 1) + " out of " + str(len(games))
 		allPlayers = playerSet(game, featureExtractors=featureExtractors, exploreProb=None, discount=None, numIters=2500)
 		data.extend(collectData(allPlayers=allPlayers, sampleSize=100, numberOfSamples=100))
-#
-# print data
-
-# Output to .csv
-# --------------
-write_to_csv = True
-if write_to_csv:
+	# Output to .csv
 	with open('generalPerformance.csv','w') as out:
-		csv_out = csv.writer(out)
-		csv_out.writerow(['game','wins'])
-		for row in data:
-			csv_out.writerow(row)
+			csv_out = csv.writer(out)
+			csv_out.writerow(['game','wins'])
+			for row in data:
+				csv_out.writerow(row)
+
+
+# Specific tests
+# Q1 trained on Oracle vs Q2 trained on oracle
+# Note: Need to set NUM_Players = 2 in in liarsdice.py !!!!
+# ---------------------------------------------------------
+runSpecificTests = False
+if runSpecificTests:
+	NUM_PLAYERS = 2
+	# Learn
+	Q1 = PureQLearningAgent(0, featureExtractor1, exploreProb=0.05, discount=0.5)
+	opponents1 = [OracleAgent(1)]
+	Q1.learn(2500, opponents1 )
+	Q2 = PureQLearningAgent(0, featureExtractor2, exploreProb=0.08, discount=0.8)
+	opponents2 = [OracleAgent(1)]
+	Q2.learn(2500, opponents2)
+
+	# Q1 gets index 0
+	Q2.agentIndex = 1
+	allPlayers = ("q1q2", [Q1, Q2])
+	data=[]
+	data.extend(collectData(allPlayers=allPlayers, sampleSize=100, numberOfSamples=100))
+	# Q2 gets index 0
+	Q1.agentIndex = 1
+	Q2.agentIndex = 0
+	allPlayers = ("q2q1", [Q2, Q1])
+	data.extend(collectData(allPlayers=allPlayers, sampleSize=100, numberOfSamples=100))
+	# Output to .csv
+	with open('QsPerformance.csv','w') as out:
+			csv_out = csv.writer(out)
+			csv_out.writerow(['game','wins'])
+			for row in data:
+				csv_out.writerow(row)
+
+# # Output to .csv
+# # --------------
+# write_to_csv = True
+# if write_to_csv:
+# 	with open('generalPerformance.csv','w') as out:
+# 		csv_out = csv.writer(out)
+# 		csv_out.writerow(['game','wins'])
+# 		for row in data:
+# 			csv_out.writerow(row)
 
 
 
