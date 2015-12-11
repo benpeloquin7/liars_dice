@@ -16,7 +16,7 @@ setwd("/Users/benpeloquin/Desktop/Autumn_2015/CS221/liars_dice/")
 
 General Performance Data
 ```{r}
-d = read.csv("generalPerformance.csv")
+d = read.csv("data/generalPerformance.csv")
 d$game = as.character(d$game)
 d$featureExtractor = ifelse(grepl("1$", d$game), 1,
                             ifelse(grepl("2$", d$game), 2, 0))
