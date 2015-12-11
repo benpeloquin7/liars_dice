@@ -1,4 +1,6 @@
-Summary of materials
+"Game playing with incomplete information: Two learning agents for Liar’s Dice" - materials for CS221 submission
+
+The following materials were for a Stanford CS221 AI project
 
 code.zip
 --------
