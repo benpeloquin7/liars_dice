@@ -203,9 +203,9 @@ if runGeneralPerformance:
 # Q1 trained on Oracle vs Q2 trained on oracle
 # Note: Need to set NUM_Players = 2 in in liarsdice.py !!!!
 # ---------------------------------------------------------
-runSpecificTests = False
-if runSpecificTests:
-	NUM_PLAYERS = 2
+runQLearnerMatchUp = False
+if runQLearnerMatchUp:
+	# NUM_PLAYERS = 2
 	# Learn
 	Q1 = PureQLearningAgent(0, featureExtractor1, exploreProb=0.05, discount=0.5)
 	opponents1 = [OracleAgent(1)]
@@ -231,8 +231,49 @@ if runSpecificTests:
 			for row in data:
 				csv_out.writerow(row)
 
-# # Output to .csv
-# # --------------
+# Specific tests - Gen test but with TRAINING ON ORACLES
+# ------------------------------------------------------
+runGenTrainOnOracles = False
+if runGenTrainOnOracles:
+	# Training
+	# --------
+	data = []
+
+	# Q1
+	Q1 = PureQLearningAgent(0, featureExtractor1, exploreProb=0.05, discount=0.5)
+	opponents = [OracleAgent(1), OracleAgent(2)]
+	Q1.learn(2500, opponents)
+	data.extend(collectData(allPlayers=("qrr_1", [Q1, RandomAgent(1), RandomAgent(2)]), sampleSize=100, numberOfSamples=100))
+	data.extend(collectData(allPlayers=("qhh_1", [Q1, HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)]), sampleSize=100, numberOfSamples=100))
+	data.extend(collectData(allPlayers=("qoo_1", [Q1, OracleAgent(1), OracleAgent(2)]), sampleSize=100, numberOfSamples=100))
+
+	# Q2
+	Q2 = PureQLearningAgent(0, featureExtractor1, exploreProb=0.08, discount=0.8)
+	Q2.learn(2500, opponents)
+	data.extend(collectData(allPlayers=("qrr_2", [Q2, RandomAgent(1), RandomAgent(2)]), sampleSize=100, numberOfSamples=100))
+	data.extend(collectData(allPlayers=("qhh_2", [Q2, HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)]), sampleSize=100, numberOfSamples=100))
+	data.extend(collectData(allPlayers=("qoo_2", [Q2, OracleAgent(1), OracleAgent(2)]), sampleSize=100, numberOfSamples=100))
+
+	# Bayesian
+	B_agent = BayesianAgent(0)
+	opponents.append(OracleAgent(0)) # Add another oracle (because Bayesian observes three)
+	B_agent.learn(2500, opponents)
+	data.extend(collectData(allPlayers=("brr", [B_agent, RandomAgent(1), RandomAgent(2)]), sampleSize=100, numberOfSamples=100))
+	data.extend(collectData(allPlayers=("bhh", [B_agent, HonestProbabilisticAgent(1), HonestProbabilisticAgent(2)]), sampleSize=100, numberOfSamples=100))
+	data.extend(collectData(allPlayers=("boo", [B_agent, OracleAgent(1), OracleAgent(2)]), sampleSize=100, numberOfSamples=100))
+
+	# Output to .csv
+	with open('oracleTrainedGenPerformance.csv','w') as out:
+			csv_out = csv.writer(out)
+			csv_out.writerow(['game','wins'])
+			for row in data:
+				csv_out.writerow(row)
+
+
+
+
+# # Output to .csv - GENERIC CODE
+# # ------------------------------
 # write_to_csv = True
 # if write_to_csv:
 # 	with open('generalPerformance.csv','w') as out:
