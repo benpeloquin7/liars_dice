@@ -1,0 +1,101 @@
+---
+title: "liarsDicePerformance"
+author: "BPeloquin"
+date: "November 11, 2015"
+output: html_document
+---
+
+```{r}
+rm(list = ls())
+library(jsonlite)
+library(Rmisc)
+library(ggplot2)
+library(dplyr)
+setwd("/Users/benpeloquin/Desktop/Autumn_2015/CS221/liars_dice/")
+```
+
+General Performance Data
+```{r}
+# Gen
+d = read.csv("data/generalPerformance.csv")
+d$game = as.character(d$game)
+d$featureExtractor = ifelse(grepl("1$", d$game), 1,
+                            ifelse(grepl("2$", d$game), 2, 0))
+d$agent = ifelse(grepl("^b", d$game), "Bayesian",
+                 ifelse(d$featureExtractor == 1, "Q1",
+                        ifelse(d$featureExtractor == 2, "Q2", "Honest")))
+d$opponents = ifelse(grepl("^.o", d$game), "oo", 
+                     ifelse(grepl("^.h", d$game), "hh", "rr"))
+```
+
+General Performance Plots
+```{r}
+d.summary = summarySE(d, measurevar="wins",
+                      groupvars=c("game", "agent", "opponents"),
+                      conf.interval=0.95)
+ggplot(d.summary, aes(x=agent, y=wins, fill=agent)) +
+  geom_bar(position=position_dodge(), stat="identity") +
+  geom_hline(yintercept=33, col="red", lty=2) +
+  geom_errorbar(aes(ymin=wins-ci, ymax=wins+ci),
+                  width=.1,
+                  position=position_dodge(.9)) +
+  facet_wrap(~opponents) +
+  xlab("AI Agent") +
+  ylab("Wins out of 100") +
+  ggtitle("Wins by competitor set")
+```
+
+General Performance + Trained On Oracles Data
+```{r}
+# Gen
+d = read.csv("oracleTrainedGenPerformance.csv")
+d$game = as.character(d$game)
+d$featureExtractor = ifelse(grepl("1$", d$game), 1,
+                            ifelse(grepl("2$", d$game), 2, 0))
+d$agent = ifelse(grepl("^b", d$game), "Bayesian",
+                 ifelse(d$featureExtractor == 1, "Q1",
+                        ifelse(d$featureExtractor == 2, "Q2", "Honest")))
+d$opponents = ifelse(grepl("^.o", d$game), "oo", 
+                     ifelse(grepl("^.h", d$game), "hh", "rr"))
+```
+
+General Performance + Trained On Oracles Plots
+```{r}
+d.summary = summarySE(d, measurevar="wins",
+                      groupvars=c("game", "agent", "opponents"),
+                      conf.interval=0.95)
+ggplot(d.summary, aes(x=agent, y=wins, fill=agent)) +
+  geom_bar(position=position_dodge(), stat="identity") +
+  geom_hline(yintercept=33, col="red", lty=2) +
+  geom_errorbar(aes(ymin=wins-ci, ymax=wins+ci),
+                  width=.1,
+                  position=position_dodge(.9)) +
+  facet_wrap(~opponents) +
+  xlab("AI Agent") +
+  ylab("Wins out of 100") +
+  ggtitle("Wins by competitor set\nAll training on Oracles")
+```
+
+Specific Q-learned data
+```{r}
+d = read.csv("data/QsPerformance.csv")
+d$game = as.character(d$game)
+d$agent = ifelse(d$game == "q1q2", "Q1", "Q2")
+```
+
+Specific Q-learned Plots
+```{r}
+d.summary = summarySE(d, measurevar="wins",
+                      groupvars=c("agent"),
+                      conf.interval=0.95)
+ggplot(d.summary, aes(x=agent, y=wins, fill=agent)) +
+  geom_bar(position=position_dodge(), stat="identity") +
+  geom_hline(yintercept=50, col="red", lty=2) +
+  geom_errorbar(aes(ymin=wins-ci, ymax=wins+ci),
+                  width=.1,
+                  position=position_dodge(.9)) +
+  ylim(0, 100) +
+  xlab("Feature sets") +
+  ylab("Wins out of 100") +
+  ggtitle("Q-learning match-up\nTrained on Oracles")
+```
